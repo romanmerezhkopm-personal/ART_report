@@ -35,10 +35,17 @@ $ART_DIRECTION = @{
     "1213599181255288"="VFX";         "1213599181255292"="Animations"
     "1213910439454138"="ASO Icons";   "1213910439713691"="ASO Screenshots"
     "1213911620513682"="ASO CPP";     "1213911895502718"="ASO In App Events"
-    "1213993120177405"="Banner ADS";  "1213879913329451"="CAS Requests"
-    # newer CAS.* projects added to the portfolio after the original 10 - folded into the same
-    # "CAS Requests" dept-grid plate so the established 5x2 grid layout doesn't need new slots
-    "1216704431904924"="CAS Requests"; "1216704431904918"="CAS Requests"; "1216704431904914"="CAS Requests"
+    "1213993120177405"="Banner ADS";  "1213879913329451"="CAS.product"
+    # newer CAS.* projects added to the portfolio after the original 10 - each gets its own
+    # dept-grid plate (Roman's request 03.09.2026: was folded into one "CAS Requests" plate,
+    # no longer - the 4 CAS.* projects are distinct teams/workstreams, not one department)
+    "1216704431904924"="CAS.the_rest"; "1216704431904918"="CAS.ads"; "1216704431904914"="CAS.socialmedia"
+    # portfolio grew from 13 to 15 projects between the 02.08 and 03.09.2026 runs - found live
+    # via the API while regenerating this report (was silently dropping their tasks from every
+    # dept-grid plate, since Add-SubtasksRecursive's Write-Host used $ART_DIRECTION[$projGid]
+    # but nothing downstream failed loudly). Each new project gets its own plate, same as every
+    # other single-project department here.
+    "1217850380511462"="TechART"; "1213911862802481"="Feature Graphics"
 }
 
 # ART portfolio membership is fetched live (not hardcoded) so newly added/removed projects are
@@ -59,6 +66,21 @@ if ($ART_GIDs.Count -eq 0) {
                   "1213993120177405","1213879913329451","1216704431904924","1216704431904918","1216704431904914")
 }
 Write-Host "  ART portfolio: $($ART_GIDs.Count) projects"
+
+# Executable check (added 03.09.2026 after TechART/Feature Graphics were found missing from
+# $ART_DIRECTION live): the portfolio fetch above protects Step 1 (which projects get scanned),
+# but $ART_DIRECTION is a separate hardcoded gid->name map nothing keeps in sync automatically.
+# A portfolio project missing here doesn't crash anything - its tasks just silently never appear
+# in any dept-grid card. Fail loudly and early instead of a quiet Write-Host with a blank name.
+$missingFromDirMap = @($ART_GIDs | Where-Object { -not $ART_DIRECTION.ContainsKey($_) })
+if ($missingFromDirMap.Count -gt 0) {
+    Write-Host "  !!! WARNING: $($missingFromDirMap.Count) portfolio project(s) missing from `$ART_DIRECTION - their tasks will NOT appear in any dept-grid card:"
+    foreach ($mg in $missingFromDirMap) {
+        $mgName = if ($portfolioItems.Contains($mg)) { $portfolioItems[$mg] } else { "(name unknown)" }
+        Write-Host "      $mg  $mgName"
+    }
+    Write-Host "  !!! Add these to `$ART_DIRECTION and `$deptOrder near the top of this script before trusting this report's direction breakdown."
+}
 $ART_GID_SET = @{}
 foreach ($g in $ART_GIDs) { $ART_GID_SET[$g] = $true }
 
@@ -469,7 +491,12 @@ function Art-Pill([string]$dir) {
         'ASO CPP'           { '<span class="art-pill art-aso">ASO CPP</span>' }
         'ASO In App Events' { '<span class="art-pill art-aso">ASO Events</span>' }
         'Banner ADS'        { '<span class="art-pill art-ban">Banner</span>' }
-        'CAS Requests'      { '<span class="art-pill art-cas">CAS</span>' }
+        'CAS.product'       { '<span class="art-pill art-cas">CAS.product</span>' }
+        'CAS.ads'           { '<span class="art-pill art-cas">CAS.ads</span>' }
+        'CAS.socialmedia'   { '<span class="art-pill art-cas">CAS.socialmedia</span>' }
+        'CAS.the_rest'      { '<span class="art-pill art-cas">CAS.the_rest</span>' }
+        'TechART'           { '<span class="art-pill art-3d">TechART</span>' }
+        'Feature Graphics'  { '<span class="art-pill art-ban">Feature Gfx</span>' }
         'External'          { '<span class="art-pill" style="background:#edf2f7;color:#718096;">&#1042;&#1085;&#1077; ART</span>' }
         default             { '<span class="art-pill">' + (Esc $dir) + '</span>' }
     }
@@ -549,7 +576,7 @@ foreach ($gid in $tasks2.Keys) {
     if (-not $byAssignee.ContainsKey($who)) {
         $byAssignee[$who] = @{ tasks=[System.Collections.Generic.List[object]]::new(); hours=0.0 }
     }
-    $byAssignee[$who].tasks.Add(@{gid=$gid;name=$t.name;url=$t.permalink_url;dir=$dir;hours=$t.hours;proj=$proj})
+    $byAssignee[$who].tasks.Add(@{gid=$gid;name=$t.name;url=$t.permalink_url;dir=$dir;hours=$t.hours;proj=$proj;external=$t.external;is_status_based=$t.is_status_based;status_name=$t.status_name})
     $byAssignee[$who].hours += $t.hours
 }
 
@@ -573,8 +600,9 @@ $sortedAssignees = $byAssignee.GetEnumerator() | Sort-Object { $_.Value.hours } 
 $maxH = 0.0
 foreach ($v in $byProject.Values) { if ($v.hours -gt $maxH) { $maxH = $v.hours } }
 
-$deptOrder = @('3D Art','2D Art / UI','Animations','VFX','CAS Requests',
-               'ASO Screenshots','ASO Icons','ASO CPP','ASO In App Events','Banner ADS')
+$deptOrder = @('3D Art','2D Art / UI','Animations','VFX','TechART',
+               'CAS.product','CAS.ads','CAS.socialmedia','CAS.the_rest',
+               'ASO Screenshots','ASO Icons','ASO CPP','ASO In App Events','Banner ADS','Feature Graphics')
 $barColors = @('#667eea','#764ba2','#f093fb','#4facfe','#f5576c','#fd746c','#43e97b',
                '#fa709a','#30cfd0','#a8edea','#feb692','#96fbc4','#5ee7df','#b490ca','#fda085')
 
@@ -646,11 +674,21 @@ $L = [System.Collections.Generic.List[string]]::new()
 [void]$L.Add('.proj-row-bar { height:20px; border-radius:4px; display:flex; align-items:center; padding-left:8px; font-size:11px; color:white; font-weight:600; white-space:nowrap; min-width:32px; }')
 [void]$L.Add('.proj-row-hours { flex-shrink:0; width:80px; text-align:right; font-weight:700; font-size:15px; color:#2d3748; }')
 [void]$L.Add('.proj-row-summary-line { font-size:13px; color:#718096; margin-bottom:12px; }')
+[void]$L.Add('.proj-dir-groups { padding:10px; }')
+[void]$L.Add('.proj-dir-groups details { border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }')
+[void]$L.Add('.proj-dir-groups details summary { background:#eef1f8; }')
+[void]$L.Add('.proj-dir-total { padding:10px 14px; font-weight:700; background:#f7f8fc; border-top:1px solid #e2e8f0; font-size:13px; }')
+[void]$L.Add('.cmp-header { display:flex; align-items:center; gap:8px; padding:0 14px 8px; }')
+[void]$L.Add('.cmp-header .cmp-col { font-size:11px; font-weight:600; color:#718096; text-transform:uppercase; letter-spacing:.5px; }')
+[void]$L.Add('.cmp-header .cmp-col small { font-weight:400; text-transform:none; letter-spacing:normal; }')
+[void]$L.Add('.cmp-row summary { gap:8px; }')
+[void]$L.Add('.cmp-col { flex:1; text-align:center; font-size:13px; }')
+[void]$L.Add('.cmp-col.cmp-name { flex:1.6; text-align:left; }')
 [void]$L.Add('.dept-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }')
 [void]$L.Add('.dept-card { background:#f7f8fc; border-radius:8px; padding:16px; text-align:center; border:1px solid #e2e8f0; }')
 [void]$L.Add('.dept-card .dept-name { font-size:12px; font-weight:600; color:#718096; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }')
-[void]$L.Add('.dept-card .dept-hours { font-size:24px; font-weight:700; color:#2d3748; }')
-[void]$L.Add('.dept-card .dept-pct { font-size:12px; color:#a0aec0; margin-top:2px; }')
+[void]$L.Add('.dept-card .dept-pct-big { font-size:24px; font-weight:700; color:#2d3748; }')
+[void]$L.Add('.dept-card .dept-hours-small { font-size:12px; color:#a0aec0; margin-top:2px; }')
 [void]$L.Add('details { margin-bottom:8px; }')
 [void]$L.Add('details summary { cursor:pointer; padding:10px 14px; background:#f7f8fc; border-radius:8px; font-weight:600; font-size:13px; list-style:none; display:flex; align-items:center; justify-content:space-between; border:1px solid #e2e8f0; }')
 [void]$L.Add('details summary::-webkit-details-marker { display:none; }')
@@ -696,7 +734,7 @@ foreach ($dir in $deptOrder) {
     $dh   = if ($byDirection.ContainsKey($dir)) { $byDirection[$dir] } else { 0.0 }
     $dpct = [math]::Round($dh / $totalH * 100, 1)
     $dhd  = Fmt $dh
-    [void]$L.Add('    <div class="dept-card"><div class="dept-name">' + (Esc $dir) + '</div><div class="dept-hours">' + $dhd + ' &#1095;</div><div class="dept-pct">' + $dpct + '% &#1086;&#1090; &#1086;&#1073;&#1097;&#1077;&#1075;&#1086;</div></div>')
+    [void]$L.Add('    <div class="dept-card"><div class="dept-name">' + (Esc $dir) + '</div><div class="dept-pct-big">' + $dpct + '%</div><div class="dept-hours-small">' + $dhd + ' &#1095; &#1086;&#1090; &#1086;&#1073;&#1097;&#1077;&#1075;&#1086;</div></div>')
 }
 [void]$L.Add('  </div>')
 [void]$L.Add('</div>')
@@ -736,17 +774,46 @@ foreach ($kv in $sortedProj) {
     [void]$L.Add('      <span class="proj-row-bar-wrap"><span class="proj-row-bar" style="display:flex;width:' + $barW + '%;background:' + $col + ';">' + $ppct + '%</span></span>')
     [void]$L.Add('      <span class="proj-row-hours">' + $phd + ' &#1095;</span>')
     [void]$L.Add('    </summary>')
-    [void]$L.Add('    <div class="detail-content"><table class="detail-table">')
-    [void]$L.Add('      <thead><tr><th>&#1047;&#1072;&#1076;&#1072;&#1095;&#1072;</th><th>&#1053;&#1072;&#1087;&#1088;&#1072;&#1074;&#1083;&#1077;&#1085;&#1080;&#1077;</th><th>&#1048;&#1089;&#1087;&#1086;&#1083;&#1085;&#1080;&#1090;&#1077;&#1083;&#1100;</th><th>&#1063;&#1072;&#1089;&#1086;&#1074;</th></tr></thead>')
-    [void]$L.Add('      <tbody>')
-    foreach ($tk in ($kv.Value.tasks | Sort-Object { $_.hours } -Descending)) {
-        $hCell = if ($tk.is_status_based) { '&mdash;' } else { Fmt $tk.hours }
-        $trCls = if ($tk.is_status_based) { ' class="status-row"' } else { '' }
-        $sPill = if ($tk.is_status_based) { Status-Pill $tk.status_name } else { '' }
-        [void]$L.Add('        <tr' + $trCls + '><td><a class="task-link" href="' + $tk.url + '" target="_blank">' + (Esc $tk.name) + '</a>' + $sPill + '</td><td>' + (Art-Pill $tk.dir) + '</td><td>' + (Esc $tk.assignee) + '</td><td class="hours">' + $hCell + '</td></tr>')
+    [void]$L.Add('    <div class="detail-content">')
+
+    # Second grouping level: this project's tasks split by ART direction, sorted by each
+    # direction's share of the project's hours (desc) - Roman's request 03.09.2026. Each
+    # direction group expands to its own task list (Art-Pill already identifies the direction,
+    # so the per-task direction column from the old flat table is dropped as redundant here).
+    $dirGroups = [ordered]@{}
+    foreach ($tk in $kv.Value.tasks) {
+        if (-not $dirGroups.Contains($tk.dir)) {
+            $dirGroups[$tk.dir] = @{ tasks = [System.Collections.Generic.List[object]]::new(); hours = 0.0 }
+        }
+        $dirGroups[$tk.dir].tasks.Add($tk)
+        $dirGroups[$tk.dir].hours += $tk.hours
     }
-    [void]$L.Add('        <tr class="total-row"><td colspan="3">&#1048;&#1090;&#1086;&#1075;&#1086;: ' + (Esc $kv.Key) + '</td><td>' + $phd + '</td></tr>')
-    [void]$L.Add('      </tbody></table></div>')
+    $sortedDirGroups = $dirGroups.GetEnumerator() | Sort-Object { $_.Value.hours } -Descending
+
+    [void]$L.Add('      <div class="proj-dir-groups">')
+    foreach ($dg in $sortedDirGroups) {
+        $dgHours  = $dg.Value.hours
+        $dgPct    = if ($ph -gt 0) { [math]::Round($dgHours / $ph * 100, 1) } else { 0 }
+        $dgTasks  = $dg.Value.tasks.Count
+        $dgHoursD = Fmt $dgHours
+        [void]$L.Add('        <details>')
+        [void]$L.Add('          <summary>' + (Art-Pill $dg.Key) + '&nbsp;&nbsp;<span class="artist-stat">' + $dgHoursD + ' &#1095; &mdash; ' + $dgPct + '% &#1086;&#1090; &#1087;&#1088;&#1086;&#1077;&#1082;&#1090;&#1072; &mdash; ' + $dgTasks + ' &#1079;&#1072;&#1076;&#1072;&#1095;</span></summary>')
+        [void]$L.Add('          <div class="detail-content"><table class="detail-table">')
+        [void]$L.Add('            <thead><tr><th>&#1047;&#1072;&#1076;&#1072;&#1095;&#1072;</th><th>&#1048;&#1089;&#1087;&#1086;&#1083;&#1085;&#1080;&#1090;&#1077;&#1083;&#1100;</th><th>&#1063;&#1072;&#1089;&#1086;&#1074;</th></tr></thead>')
+        [void]$L.Add('            <tbody>')
+        foreach ($tk in ($dg.Value.tasks | Sort-Object { $_.hours } -Descending)) {
+            $hCell = if ($tk.is_status_based) { '&mdash;' } else { Fmt $tk.hours }
+            $trCls = if ($tk.is_status_based) { ' class="status-row"' } else { '' }
+            $sPill = if ($tk.is_status_based) { Status-Pill $tk.status_name } else { '' }
+            [void]$L.Add('              <tr' + $trCls + '><td><a class="task-link" href="' + $tk.url + '" target="_blank">' + (Esc $tk.name) + '</a>' + $sPill + '</td><td>' + (Esc $tk.assignee) + '</td><td class="hours">' + $hCell + '</td></tr>')
+        }
+        [void]$L.Add('            <tr class="total-row"><td colspan="2">&#1048;&#1090;&#1086;&#1075;&#1086;: ' + (Art-Pill $dg.Key) + '</td><td>' + $dgHoursD + '</td></tr>')
+        [void]$L.Add('            </tbody></table></div>')
+        [void]$L.Add('        </details>')
+    }
+    [void]$L.Add('      </div>')
+    [void]$L.Add('      <div class="proj-dir-total">&#1048;&#1090;&#1086;&#1075;&#1086;: ' + (Esc $kv.Key) + ' &mdash; ' + $phd + ' &#1095;</div>')
+    [void]$L.Add('    </div>')
     [void]$L.Add('  </details>')
 }
 [void]$L.Add('  <div class="proj-row-summary-line">&#1048;&#1058;&#1054;&#1043;&#1054;: ' + @($sortedProj).Count + ' &#1087;&#1088;&#1086;&#1077;&#1082;&#1090;&#1086;&#1074; &mdash; ' + $sumT + ' &#1079;&#1072;&#1076;&#1072;&#1095; &mdash; ' + (Fmt $sumH) + ' &#1095; &mdash; 100%</div>')
@@ -755,24 +822,55 @@ foreach ($kv in $sortedProj) {
 # Employees section (Art Team)
 [void]$L.Add('<div class="card">')
 [void]$L.Add('  <div class="section-title" id="employees"><a href="#employees">&#1056;&#1072;&#1089;&#1087;&#1088;&#1077;&#1076;&#1077;&#1083;&#1077;&#1085;&#1080;&#1077; &#1088;&#1072;&#1073;&#1086;&#1090; &#1087;&#1086; &#1089;&#1086;&#1090;&#1088;&#1091;&#1076;&#1085;&#1080;&#1082;&#1072;&#1084;</a></div>')
-[void]$L.Add('  <div style="font-size:12px;color:#718096;margin-bottom:12px;">&#1048;&#1089;&#1090;&#1086;&#1095;&#1085;&#1080;&#1082; &#1089;&#1087;&#1080;&#1089;&#1082;&#1072; &#1089;&#1086;&#1090;&#1088;&#1091;&#1076;&#1085;&#1080;&#1082;&#1086;&#1074; &#8212; &#1082;&#1086;&#1084;&#1072;&#1085;&#1076;&#1072; Art Team. &#1059;&#1095;&#1090;&#1077;&#1085;&#1099; &#1079;&#1072;&#1076;&#1072;&#1095;&#1080; &#1074;&#1085;&#1077; ART-&#1087;&#1086;&#1088;&#1090;&#1092;&#1077;&#1083;&#1103; (&#1089;&#1077;&#1088;&#1099;&#1077; &#1084;&#1077;&#1090;&#1082;&#1080; &#171;&#1042;&#1085;&#1077; ART&#187;).</div>')
+[void]$L.Add('  <div style="font-size:12px;color:#718096;margin-bottom:12px;">&#1048;&#1089;&#1090;&#1086;&#1095;&#1085;&#1080;&#1082; &#1089;&#1087;&#1080;&#1089;&#1082;&#1072; &#1089;&#1086;&#1090;&#1088;&#1091;&#1076;&#1085;&#1080;&#1082;&#1086;&#1074; &#8212; &#1082;&#1086;&#1084;&#1072;&#1085;&#1076;&#1072; Art Team. &#1055;&#1086;&#1082;&#1072;&#1079;&#1072;&#1085;&#1099; &#1090;&#1086;&#1083;&#1100;&#1082;&#1086; &#1079;&#1072;&#1076;&#1072;&#1095;&#1080; &#1089; &#1079;&#1072;&#1083;&#1086;&#1075;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;&#1085;&#1099;&#1084; &#1074;&#1088;&#1077;&#1084;&#1077;&#1085;&#1077;&#1084; &#1074; &#1087;&#1077;&#1088;&#1080;&#1086;&#1076;&#1077; (&#1073;&#1077;&#1079; ART Ready/Test-&#1079;&#1072;&#1103;&#1074;&#1086;&#1082; &#1073;&#1077;&#1079; &#1090;&#1088;&#1077;&#1082;&#1080;&#1085;&#1075;&#1072;). &#1047;&#1072;&#1076;&#1072;&#1095;&#1080; &#1074;&#1085;&#1077; ART-&#1087;&#1086;&#1088;&#1090;&#1092;&#1077;&#1083;&#1103; &#1087;&#1086;&#1082;&#1072;&#1079;&#1072;&#1085;&#1099; &#1086;&#1090;&#1076;&#1077;&#1083;&#1100;&#1085;&#1099;&#1084; &#1073;&#1083;&#1086;&#1082;&#1086;&#1084; &#1074;&#1085;&#1091;&#1090;&#1088;&#1080; &#1082;&#1072;&#1088;&#1090;&#1086;&#1095;&#1082;&#1080; &#1089;&#1086;&#1090;&#1088;&#1091;&#1076;&#1085;&#1080;&#1082;&#1072;, &#1085;&#1077; &#1074;&#1093;&#1086;&#1076;&#1103;&#1090; &#1074; &#1075;&#1086;&#1083;&#1086;&#1074;&#1085;&#1086;&#1077; &#1095;&#1080;&#1089;&#1083;&#1086; &#1079;&#1072;&#1076;&#1072;&#1095;.</div>')
 foreach ($kv in $sortedAssignees) {
     if ($kv.Key -eq 'Unassigned') { continue }
     $ah     = $kv.Value.hours
-    $atasks = $kv.Value.tasks.Count
+    if ($ah -le 0) { continue }  # Roman's request 03.09.2026: hide employees with 0 logged hours
+
+    # Split into three groups (found live 03.09.2026, two fixes at once):
+    # 1) trackedTasks: portfolio + real hours logged in period - this is the ONLY group counted
+    #    in the headline number, so it's provably identical to what "Сравнение" shows for the
+    #    same person/period (same filter, same underlying $kv.Value.tasks records).
+    # 2) externalTasks: outside the 15-project portfolio but still real tracked hours in period -
+    #    kept visible (this is genuine tracked work, e.g. overtime) but shown in its own
+    #    clearly-separated sub-list so it never gets silently folded into the headline count.
+    # 3) status-based (ART Ready/Test, 0h) tasks - dropped from this table entirely. These are
+    #    NOT filtered by the report's period at all (added purely by *current* status, whenever
+    #    the script runs) - a completed-in-June, ART-Ready-status task with zero August hours was
+    #    exactly what made an "August report" show April/May-old items. Removing them here fixes
+    #    both the headline-count mismatch AND the stale-month confusion in one move.
+    $trackedTasks  = @($kv.Value.tasks | Where-Object { -not [bool]$_.external -and -not [bool]$_.is_status_based })
+    $externalTasks = @($kv.Value.tasks | Where-Object { [bool]$_.external -and -not [bool]$_.is_status_based })
+    $trackedCount  = $trackedTasks.Count
+
     $apct   = if ($empTotalH -gt 0) { [math]::Round($ah / $empTotalH * 100, 1) } else { 0 }
     $ahd    = Fmt $ah
     [void]$L.Add('  <details>')
-    [void]$L.Add('    <summary>' + (Esc $kv.Key) + '&nbsp;&nbsp;<span class="artist-stat">' + $ahd + ' &#1095; &mdash; ' + $apct + '% &mdash; ' + $atasks + ' &#1079;&#1072;&#1076;&#1072;&#1095;</span></summary>')
+    [void]$L.Add('    <summary>' + (Esc $kv.Key) + '&nbsp;&nbsp;<span class="artist-stat">' + $ahd + ' &#1095; &mdash; ' + $apct + '% &mdash; ' + $trackedCount + ' &#1079;&#1072;&#1076;&#1072;&#1095; &#1089; &#1090;&#1088;&#1077;&#1082;&#1080;&#1085;&#1075;&#1086;&#1084;</span></summary>')
     [void]$L.Add('    <div class="detail-content"><table class="detail-table">')
     [void]$L.Add('      <thead><tr><th>&#1047;&#1072;&#1076;&#1072;&#1095;&#1072;</th><th>&#1053;&#1072;&#1087;&#1088;&#1072;&#1074;&#1083;&#1077;&#1085;&#1080;&#1077;</th><th>&#1055;&#1088;&#1086;&#1077;&#1082;&#1090;</th><th>&#1063;&#1072;&#1089;&#1086;&#1074;</th><th>%</th></tr></thead>')
     [void]$L.Add('      <tbody>')
-    foreach ($tk in ($kv.Value.tasks | Sort-Object { $_.hours } -Descending)) {
+    foreach ($tk in ($trackedTasks | Sort-Object { $_.hours } -Descending)) {
         $tpct = [math]::Round($tk.hours / $ah * 100, 1)
         [void]$L.Add('        <tr><td><a class="task-link" href="' + $tk.url + '" target="_blank">' + (Esc $tk.name) + '</a></td><td>' + (Art-Pill $tk.dir) + '</td><td>' + (Esc $tk.proj) + '</td><td class="hours">' + (Fmt $tk.hours) + '</td><td class="pct">' + $tpct + '%</td></tr>')
     }
     [void]$L.Add('        <tr class="total-row"><td colspan="3">&#1048;&#1090;&#1086;&#1075;&#1086;: ' + (Esc $kv.Key) + '</td><td>' + $ahd + '</td><td>100%</td></tr>')
     [void]$L.Add('      </tbody></table></div>')
+    if ($externalTasks.Count -gt 0) {
+        $extH = 0.0
+        foreach ($etk in $externalTasks) { $extH += $etk.hours }
+        [void]$L.Add('    <details style="margin:8px 0 0 14px;">')
+        [void]$L.Add('      <summary style="font-size:12px;">&#1042;&#1085;&#1077; ART-&#1087;&#1086;&#1088;&#1090;&#1092;&#1077;&#1083;&#1103; (&#1076;&#1086;&#1087;., &#1085;&#1077; &#1074;&#1093;&#1086;&#1076;&#1080;&#1090; &#1074; &#1089;&#1095;&#1105;&#1090;&#1095;&#1080;&#1082; &#1074;&#1099;&#1096;&#1077;)&nbsp;&nbsp;<span class="artist-stat">' + (Fmt $extH) + ' &#1095; &mdash; ' + $externalTasks.Count + ' &#1079;&#1072;&#1076;&#1072;&#1095;</span></summary>')
+        [void]$L.Add('      <div class="detail-content"><table class="detail-table">')
+        [void]$L.Add('        <thead><tr><th>&#1047;&#1072;&#1076;&#1072;&#1095;&#1072;</th><th>&#1053;&#1072;&#1087;&#1088;&#1072;&#1074;&#1083;&#1077;&#1085;&#1080;&#1077;</th><th>&#1055;&#1088;&#1086;&#1077;&#1082;&#1090;</th><th>&#1063;&#1072;&#1089;&#1086;&#1074;</th></tr></thead>')
+        [void]$L.Add('        <tbody>')
+        foreach ($tk in ($externalTasks | Sort-Object { $_.hours } -Descending)) {
+            [void]$L.Add('          <tr><td><a class="task-link" href="' + $tk.url + '" target="_blank">' + (Esc $tk.name) + '</a></td><td>' + (Art-Pill $tk.dir) + '</td><td>' + (Esc $tk.proj) + '</td><td class="hours">' + (Fmt $tk.hours) + '</td></tr>')
+        }
+        [void]$L.Add('        </tbody></table></div>')
+        [void]$L.Add('    </details>')
+    }
     [void]$L.Add('  </details>')
 }
 # Team members with no tracked time in period
@@ -788,6 +886,44 @@ if ($teamMembers -and $teamMembers.Count -gt 0) {
     }
 }
 [void]$L.Add('</div>')
+
+# ============================================================
+# Monthly task-count history (Apr 2026 -> current period), team-wide and per employee.
+# Computed once here (moved up 03.09.2026 from the old standalone TREND SECTION further below)
+# so the per-employee comparison sparklines (added 03.09.2026) and the team-wide trend chart
+# read the same numbers from a single pass over each month's time_data_<YYYY-MM>.json, instead
+# of two separate file-read loops applying the same filter twice.
+# ============================================================
+$ruMonths = @('&#1071;&#1085;&#1074;&#1072;&#1088;&#1100;','&#1060;&#1077;&#1074;&#1088;&#1072;&#1083;&#1100;','&#1052;&#1072;&#1088;&#1090;','&#1040;&#1087;&#1088;&#1077;&#1083;&#1100;','&#1052;&#1072;&#1081;','&#1048;&#1102;&#1085;&#1100;',
+              '&#1048;&#1102;&#1083;&#1100;','&#1040;&#1074;&#1075;&#1091;&#1089;&#1090;','&#1057;&#1077;&#1085;&#1090;&#1103;&#1073;&#1088;&#1100;','&#1054;&#1082;&#1090;&#1103;&#1073;&#1088;&#1100;','&#1053;&#1086;&#1103;&#1073;&#1088;&#1100;','&#1044;&#1077;&#1082;&#1072;&#1073;&#1088;&#1100;')
+$trendStart    = [datetime]::new(2026,4,1)
+$curPeriodDate = [datetime]::ParseExact($Start,'yyyy-MM-dd',$null)
+$monthlyHistory = [System.Collections.Generic.List[object]]::new()
+$md = $trendStart
+while ($md -le $curPeriodDate) {
+    $mk = $md.ToString('yyyy-MM')
+    $mf = "$BASE\time_data_$mk.json"
+    if (Test-Path $mf) {
+        $mdata = Get-Content $mf -Raw -Encoding utf8 | ConvertFrom-Json
+        $byA = @{}
+        $cnt = 0
+        foreach ($mprop in $mdata.PSObject.Properties) {
+            $tv = $mprop.Value
+            if ($EXCLUDED_ASSIGNEES -contains [string]$tv.assignee) { continue }
+            $isSBv = if ($tv.PSObject.Properties['is_status_based']) { [bool]$tv.is_status_based } else { $false }
+            if (-not [bool]$tv.external -and -not $isSBv) {
+                $cnt++
+                $whoV = [string]$tv.assignee
+                if ($whoV -ne 'Unassigned') {
+                    if (-not $byA.ContainsKey($whoV)) { $byA[$whoV] = 0 }
+                    $byA[$whoV]++
+                }
+            }
+        }
+        $monthlyHistory.Add(@{ Label = $ruMonths[$md.Month-1]; Total = $cnt; ByAssignee = $byA })
+    }
+    $md = $md.AddMonths(1)
+}
 
 # ============================================================
 # COMPARISON SECTION (vs previous month)
@@ -811,59 +947,43 @@ if ($prevData2 -and $prevPeriodLbl) {
         if ($pos) { '#38a169' } else { '#e53e3e' }
     }
 
-    # Build per-person stats for prev month (skip Unassigned)
+    # Build per-person stats for prev month (skip Unassigned). Scoped to "tasks with tracking"
+    # (excludes external + status-based 0h tasks) - matches the site-wide trend/header stat and,
+    # since 03.09.2026, the per-employee sparkline embedded in this same row below. Before
+    # 03.09.2026 this reused $byAssignee (all assigned tasks incl. 0h status-based) which made a
+    # row's own header numbers disagree with its own expanded chart - found live by Roman
+    # comparing "Разбивка по сотрудникам" (9 tasks) against this row's sparkline (8 tasks) for
+    # the same person/period. "Разбивка по сотрудникам" intentionally keeps the broader
+    # definition (it's meant to show full workload incl. not-yet-tracked ART Ready/Test items) -
+    # only this comparison table + its sparkline are realigned here.
     $prevPP = @{}
     foreach ($prop0 in $prevData2.PSObject.Properties) {
         $t0 = $prop0.Value; $who0 = [string]$t0.assignee
         if ($who0 -eq 'Unassigned' -or $EXCLUDED_ASSIGNEES -contains $who0) { continue }
+        $isSBv0 = if ($t0.PSObject.Properties['is_status_based']) { [bool]$t0.is_status_based } else { $false }
+        if ([bool]$t0.external -or $isSBv0) { continue }
         if (-not $prevPP[$who0]) { $prevPP[$who0] = @{tasks=0;hours=0.0} }
         $prevPP[$who0].tasks++
         $prevPP[$who0].hours += [double]$t0.hours
     }
 
-    # Build per-person stats for current month (reuse $byAssignee)
+    # Build per-person stats for current month - same "tracking only" scope as $prevPP above,
+    # built from $tasks2 directly (not $byAssignee, which is unscoped) for the same reason.
     $currPP = @{}
-    foreach ($kv0 in $byAssignee.GetEnumerator()) {
-        if ($kv0.Key -eq 'Unassigned') { continue }
-        $currPP[$kv0.Key] = @{tasks=$kv0.Value.tasks.Count; hours=$kv0.Value.hours}
+    foreach ($gid0 in $tasks2.Keys) {
+        $t0 = $tasks2[$gid0]; $who0 = [string]$t0.assignee
+        if ($who0 -eq 'Unassigned' -or $EXCLUDED_ASSIGNEES -contains $who0) { continue }
+        if ([bool]$t0.external -or [bool]$t0.is_status_based) { continue }
+        if (-not $currPP.ContainsKey($who0)) { $currPP[$who0] = @{tasks=0;hours=0.0} }
+        $currPP[$who0].tasks++
+        $currPP[$who0].hours += [double]$t0.hours
     }
-
-    $prevTT0 = 0; foreach ($v0 in $prevPP.Values) { $prevTT0 += $v0.tasks }
-    $currTT0 = 0; foreach ($v0 in $currPP.Values) { $currTT0 += $v0.tasks }
-    $prevHH0 = 0.0; foreach ($v0 in $prevPP.Values) { $prevHH0 += $v0.hours }
-    $currHH0 = 0.0; foreach ($v0 in $currPP.Values) { $currHH0 += $v0.hours }
-    $prevEC0 = $prevPP.Count; $currEC0 = $currPP.Count
-
-    $dT0  = $currTT0 - $prevTT0
-    $dTp0 = if ($prevTT0 -gt 0) { [math]::Round($dT0/$prevTT0*100,1) } else { 0 }
-    $dE0  = $currEC0 - $prevEC0
-    $dEp0 = if ($prevEC0 -gt 0) { [math]::Round($dE0/$prevEC0*100,1) } else { 0 }
-    $dH0  = $currHH0 - $prevHH0
-    $dHp0 = if ($prevHH0 -gt 0) { [math]::Round($dH0/$prevHH0*100,1) } else { 0 }
 
     $joined0 = @($currPP.Keys | Where-Object { -not $prevPP.ContainsKey($_) } | Sort-Object)
     $left0   = @($prevPP.Keys | Where-Object { -not $currPP.ContainsKey($_) } | Sort-Object)
 
     [void]$L.Add('<div class="card">')
     [void]$L.Add('  <div class="section-title" id="comparison"><a href="#comparison">&#1057;&#1088;&#1072;&#1074;&#1085;&#1077;&#1085;&#1080;&#1077; &#1089; ' + (Esc $prevPeriodLbl) + '</a></div>')
-
-    # 3-column summary
-    [void]$L.Add('  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">')
-    $sumItems0 = @(
-        @{lbl='&#1047;&#1072;&#1076;&#1072;&#1095;';            cur=[int]$currTT0; prv=[int]$prevTT0; d=[int]$dT0; dp=$dTp0},
-        @{lbl='&#1057;&#1086;&#1090;&#1088;&#1091;&#1076;&#1085;&#1080;&#1082;&#1086;&#1074;'; cur=[int]$currEC0; prv=[int]$prevEC0; d=[int]$dE0; dp=$dEp0},
-        @{lbl='&#1063;&#1072;&#1089;&#1086;&#1074;';            cur=[math]::Round($currHH0); prv=[math]::Round($prevHH0); d=[math]::Round($dH0); dp=$dHp0}
-    )
-    foreach ($si in $sumItems0) {
-        $sc = DCol $si.d; $ss = DSN $si.d
-        [void]$L.Add('    <div style="background:#f7f8fc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;text-align:center;">')
-        [void]$L.Add('      <div style="font-size:11px;font-weight:600;color:#718096;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">' + $si.lbl + '</div>')
-        [void]$L.Add('      <div style="font-size:28px;font-weight:700;">' + $si.cur + '</div>')
-        [void]$L.Add('      <div style="font-size:12px;color:#a0aec0;margin-top:2px;">&#1073;&#1099;&#1083;&#1086;: ' + $si.prv + '</div>')
-        [void]$L.Add('      <div style="font-size:15px;font-weight:700;color:' + $sc + ';margin-top:6px;">' + $ss + $si.d + ' (' + $ss + $si.dp + '%)</div>')
-        [void]$L.Add('    </div>')
-    }
-    [void]$L.Add('  </div>')
 
     # Joined / Left chips
     if ($joined0.Count -gt 0 -or $left0.Count -gt 0) {
@@ -885,16 +1005,17 @@ if ($prevData2 -and $prevPeriodLbl) {
         [void]$L.Add('  </div>')
     }
 
-    # Per-employee comparison table
-    [void]$L.Add('  <table class="summary-table">')
-    [void]$L.Add('    <thead><tr>')
-    [void]$L.Add('      <th>&#1057;&#1086;&#1090;&#1088;&#1091;&#1076;&#1085;&#1080;&#1082;</th>')
-    [void]$L.Add('      <th style="text-align:center">' + (Esc $prevPeriodLbl) + '<br><small style="font-weight:400;text-transform:none">&#1095; / &#1079;&#1072;&#1076;.</small></th>')
-    [void]$L.Add('      <th style="text-align:center">' + (Esc $Label) + '<br><small style="font-weight:400;text-transform:none">&#1095; / &#1079;&#1072;&#1076;.</small></th>')
-    [void]$L.Add('      <th style="text-align:center">&#916; &#1063;&#1072;&#1089;&#1086;&#1074;</th>')
-    [void]$L.Add('      <th style="text-align:center">&#916; &#1047;&#1072;&#1076;&#1072;&#1095;</th>')
-    [void]$L.Add('      <th style="text-align:center">&#1063;&#1072;&#1089;/&#1079;&#1072;&#1076;. (&#1101;&#1092;&#1092;.)</th>')
-    [void]$L.Add('    </tr></thead><tbody>')
+    # Per-employee comparison list. Was a plain <table>; converted to expandable <details> rows
+    # 03.09.2026 so each employee can be opened to a sparkline of their own tracked-task count by
+    # month (same source/filter as the team-wide trend chart further down, scoped to this person).
+    [void]$L.Add('  <div class="cmp-header">')
+    [void]$L.Add('    <span class="cmp-col cmp-name">&#1057;&#1086;&#1090;&#1088;&#1091;&#1076;&#1085;&#1080;&#1082;</span>')
+    [void]$L.Add('    <span class="cmp-col">' + (Esc $prevPeriodLbl) + '<br><small>&#1095; / &#1079;&#1072;&#1076;.</small></span>')
+    [void]$L.Add('    <span class="cmp-col">' + (Esc $Label) + '<br><small>&#1095; / &#1079;&#1072;&#1076;.</small></span>')
+    [void]$L.Add('    <span class="cmp-col">&#916; &#1063;&#1072;&#1089;&#1086;&#1074;</span>')
+    [void]$L.Add('    <span class="cmp-col">&#916; &#1047;&#1072;&#1076;&#1072;&#1095;</span>')
+    [void]$L.Add('    <span class="cmp-col">&#1063;&#1072;&#1089;/&#1079;&#1072;&#1076;. (&#1101;&#1092;&#1092;.)</span>')
+    [void]$L.Add('  </div>')
 
     $allP0 = @{}
     foreach ($n0 in $currPP.Keys) { $allP0[$n0] = 1 }
@@ -935,44 +1056,38 @@ if ($prevData2 -and $prevPeriodLbl) {
             '<span style="color:' + $c0 + ';font-weight:600">' + $s0 + $dTv0 + '</span><br><small style="color:#a0aec0">' + $s0 + $dTvp0 + '%</small>'
         } else { '<small style="color:#a0aec0">&#1085;&#1086;&#1074;&#1099;&#1081;</small>' }
 
-        [void]$L.Add('      <tr>')
-        [void]$L.Add('        <td><strong>' + (Esc $nm0) + '</strong></td>')
-        [void]$L.Add('        <td style="text-align:center;color:#718096;">' + $prevC0 + '</td>')
-        [void]$L.Add('        <td style="text-align:center;font-weight:700;">' + $currC0 + '</td>')
-        [void]$L.Add('        <td style="text-align:center;">' + $dHhtml0 + '</td>')
-        [void]$L.Add('        <td style="text-align:center;">' + $dThtml0 + '</td>')
-        [void]$L.Add('        <td style="text-align:center;font-size:13px;">' + $effC0 + '</td>')
-        [void]$L.Add('      </tr>')
+        $empPoints = @($monthlyHistory | ForEach-Object {
+            $v = if ($_.ByAssignee.ContainsKey($nm0)) { $_.ByAssignee[$nm0] } else { 0 }
+            @{ Label = $_.Label; Value = $v }
+        })
+        $hasAnyTasks = ($empPoints | Where-Object { $_.Value -gt 0 } | Measure-Object).Count -gt 0
+
+        [void]$L.Add('    <details class="cmp-row">')
+        [void]$L.Add('      <summary>')
+        [void]$L.Add('        <span class="cmp-col cmp-name"><strong>' + (Esc $nm0) + '</strong></span>')
+        [void]$L.Add('        <span class="cmp-col" style="color:#718096;">' + $prevC0 + '</span>')
+        [void]$L.Add('        <span class="cmp-col" style="font-weight:700;">' + $currC0 + '</span>')
+        [void]$L.Add('        <span class="cmp-col">' + $dHhtml0 + '</span>')
+        [void]$L.Add('        <span class="cmp-col">' + $dThtml0 + '</span>')
+        [void]$L.Add('        <span class="cmp-col" style="font-size:13px;">' + $effC0 + '</span>')
+        [void]$L.Add('      </summary>')
+        [void]$L.Add('      <div class="detail-content" style="padding:14px;">')
+        if ($hasAnyTasks) {
+            [void]$L.Add('        <div style="font-size:12px;color:#718096;margin-bottom:6px;">&#1047;&#1072;&#1076;&#1072;&#1095; &#1089; &#1090;&#1088;&#1077;&#1082;&#1080;&#1085;&#1075;&#1086;&#1084; &#1087;&#1086; &#1084;&#1077;&#1089;&#1103;&#1094;&#1072;&#1084; &mdash; ' + (Esc $nm0) + '</div>')
+            [void]$L.Add('        ' + (Build-TrendSvg $empPoints))
+        } else {
+            [void]$L.Add('        <div style="font-size:13px;color:#a0aec0;">&#1053;&#1077;&#1076;&#1086;&#1089;&#1090;&#1072;&#1090;&#1086;&#1095;&#1085;&#1086; &#1076;&#1072;&#1085;&#1085;&#1099;&#1093; &#1076;&#1083;&#1103; &#1075;&#1088;&#1072;&#1092;&#1080;&#1082;&#1072;.</div>')
+        }
+        [void]$L.Add('      </div>')
+        [void]$L.Add('    </details>')
     }
-    [void]$L.Add('    </tbody></table>')
     [void]$L.Add('</div>')
 }
 
 # ============================================================
 # TREND SECTION (tasks with tracking, April 2026 -> current period)
 # ============================================================
-$ruMonths = @('&#1071;&#1085;&#1074;&#1072;&#1088;&#1100;','&#1060;&#1077;&#1074;&#1088;&#1072;&#1083;&#1100;','&#1052;&#1072;&#1088;&#1090;','&#1040;&#1087;&#1088;&#1077;&#1083;&#1100;','&#1052;&#1072;&#1081;','&#1048;&#1102;&#1085;&#1100;',
-              '&#1048;&#1102;&#1083;&#1100;','&#1040;&#1074;&#1075;&#1091;&#1089;&#1090;','&#1057;&#1077;&#1085;&#1090;&#1103;&#1073;&#1088;&#1100;','&#1054;&#1082;&#1090;&#1103;&#1073;&#1088;&#1100;','&#1053;&#1086;&#1103;&#1073;&#1088;&#1100;','&#1044;&#1077;&#1082;&#1072;&#1073;&#1088;&#1100;')
-$trendStart    = [datetime]::new(2026,4,1)
-$curPeriodDate = [datetime]::ParseExact($Start,'yyyy-MM-dd',$null)
-$trendPoints   = @()
-$md = $trendStart
-while ($md -le $curPeriodDate) {
-    $mk = $md.ToString('yyyy-MM')
-    $mf = "$BASE\time_data_$mk.json"
-    if (Test-Path $mf) {
-        $mdata = Get-Content $mf -Raw -Encoding utf8 | ConvertFrom-Json
-        $cnt = 0
-        foreach ($mprop in $mdata.PSObject.Properties) {
-            $tv = $mprop.Value
-            if ($EXCLUDED_ASSIGNEES -contains [string]$tv.assignee) { continue }
-            $isSBv = if ($tv.PSObject.Properties['is_status_based']) { [bool]$tv.is_status_based } else { $false }
-            if (-not [bool]$tv.external -and -not $isSBv) { $cnt++ }
-        }
-        $trendPoints += @{ Label = $ruMonths[$md.Month-1]; Value = $cnt }
-    }
-    $md = $md.AddMonths(1)
-}
+$trendPoints = @($monthlyHistory | ForEach-Object { @{ Label = $_.Label; Value = $_.Total } })
 
 if ($trendPoints.Count -ge 2) {
     [void]$L.Add('<div class="card">')
