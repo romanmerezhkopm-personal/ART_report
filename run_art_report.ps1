@@ -46,6 +46,10 @@ $ART_DIRECTION = @{
     # but nothing downstream failed loudly). Each new project gets its own plate, same as every
     # other single-project department here.
     "1217850380511462"="TechART"; "1213911862802481"="Feature Graphics"
+    # portfolio grew from 15 to 17 projects between the 03.09 and 30.09.2026 runs - found live
+    # via the API (Roman's call 30.09.2026: own dept-grid plate each, same as every other
+    # single-project department here, not folded/excluded).
+    "1219014698904107"="Not Enough Loaded"; "1218619312758854"="HR Request"
 }
 
 # ART portfolio membership is fetched live (not hardcoded) so newly added/removed projects are
@@ -602,7 +606,8 @@ foreach ($v in $byProject.Values) { if ($v.hours -gt $maxH) { $maxH = $v.hours }
 
 $deptOrder = @('3D Art','2D Art / UI','Animations','VFX','TechART',
                'CAS.product','CAS.ads','CAS.socialmedia','CAS.the_rest',
-               'ASO Screenshots','ASO Icons','ASO CPP','ASO In App Events','Banner ADS','Feature Graphics')
+               'ASO Screenshots','ASO Icons','ASO CPP','ASO In App Events','Banner ADS','Feature Graphics',
+               'Not Enough Loaded','HR Request')
 $barColors = @('#667eea','#764ba2','#f093fb','#4facfe','#f5576c','#fd746c','#43e97b',
                '#fa709a','#30cfd0','#a8edea','#feb692','#96fbc4','#5ee7df','#b490ca','#fda085')
 
