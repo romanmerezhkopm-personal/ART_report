@@ -50,18 +50,49 @@ $ART_DIRECTION = @{
     # via the API (Roman's call 30.09.2026: own dept-grid plate each, same as every other
     # single-project department here, not folded/excluded).
     "1219014698904107"="Not Enough Loaded"; "1218619312758854"="HR Request"
+    # found 08.10.2026 after the portfolio was restructured into nested portfolios (see
+    # Get-PortfolioProjects): Motion Design: Backlog now lives under CAS.Marketing_ART. Own
+    # dept-grid plate, same convention as every other single-project department.
+    "1213598068805302"="Motion Design"
 }
 
 # ART portfolio membership is fetched live (not hardcoded) so newly added/removed projects are
 # picked up automatically - Roman's request 04.08.2026 after the portfolio grew from 10 to 13 projects.
 $ART_PORTFOLIO_GID = "1213829329062998"
 $portfolioItems = [ordered]@{}
+
+# Portfolios nest (found 08.10.2026: CAS.Marketing_ART / CAS.AI_ART / CAS.Games_ART were added
+# under the ART portfolio and 10 of 18 projects moved inside them - the old flat fetch kept only
+# resource_type=project and silently dropped all of them). Walk sub-portfolios recursively.
+# Fail loudly instead of returning a partial list: an unknown item type or a failed sub-fetch
+# throws, it never degrades to "fewer projects". Pagination: follow next_page.offset.
+function Get-PortfolioProjects([string]$pgid, [hashtable]$visited, [string]$path) {
+    if ($visited.ContainsKey($pgid)) { return }   # cycle / same portfolio reachable twice
+    $visited[$pgid] = $true
+    $offset = $null
+    do {
+        $u = "$apiBase/portfolios/$pgid/items?opt_fields=gid,name,resource_type,archived&limit=100"
+        if ($offset) { $u += "&offset=$offset" }
+        $resp = Invoke-RestMethod $u -Headers $headers
+        foreach ($item in $resp.data) {
+            switch ($item.resource_type) {
+                "project"   { if (-not [bool]$item.archived) { $portfolioItems[$item.gid] = $item.name } }
+                "portfolio" {
+                    Write-Host "  sub-portfolio: $path/$($item.name)"
+                    Get-PortfolioProjects $item.gid $visited "$path/$($item.name)"
+                }
+                default     { throw "Unknown resource_type '$($item.resource_type)' in portfolio $pgid ($($item.name)) - extend Get-PortfolioProjects before trusting this report" }
+            }
+        }
+        $offset = if ($resp.next_page) { $resp.next_page.offset } else { $null }
+    } while ($offset)
+}
 try {
-    $resp = Invoke-RestMethod "$apiBase/portfolios/$ART_PORTFOLIO_GID/items?opt_fields=gid,name,resource_type,archived&limit=100" -Headers $headers
-    foreach ($item in $resp.data) {
-        if ($item.resource_type -eq "project" -and -not [bool]$item.archived) { $portfolioItems[$item.gid] = $item.name }
-    }
-} catch { Write-Host "  ERROR fetching ART portfolio: $_" }
+    Get-PortfolioProjects $ART_PORTFOLIO_GID @{} "ART"
+} catch {
+    Write-Host "  ERROR fetching ART portfolio tree: $_"
+    throw   # never fall through with a partial tree (the hardcoded fallback below is only for an EMPTY result)
+}
 $ART_GIDs = @($portfolioItems.Keys)
 if ($ART_GIDs.Count -eq 0) {
     Write-Host "  WARNING: ART portfolio fetch returned 0 projects, falling back to the last-known hardcoded list"
@@ -501,6 +532,7 @@ function Art-Pill([string]$dir) {
         'CAS.the_rest'      { '<span class="art-pill art-cas">CAS.the_rest</span>' }
         'TechART'           { '<span class="art-pill art-3d">TechART</span>' }
         'Feature Graphics'  { '<span class="art-pill art-ban">Feature Gfx</span>' }
+        'Motion Design'     { '<span class="art-pill art-anim">Motion</span>' }
         'External'          { '<span class="art-pill" style="background:#edf2f7;color:#718096;">&#1042;&#1085;&#1077; ART</span>' }
         default             { '<span class="art-pill">' + (Esc $dir) + '</span>' }
     }
@@ -607,7 +639,7 @@ foreach ($v in $byProject.Values) { if ($v.hours -gt $maxH) { $maxH = $v.hours }
 $deptOrder = @('3D Art','2D Art / UI','Animations','VFX','TechART',
                'CAS.product','CAS.ads','CAS.socialmedia','CAS.the_rest',
                'ASO Screenshots','ASO Icons','ASO CPP','ASO In App Events','Banner ADS','Feature Graphics',
-               'Not Enough Loaded','HR Request')
+               'Not Enough Loaded','HR Request','Motion Design')
 $barColors = @('#667eea','#764ba2','#f093fb','#4facfe','#f5576c','#fd746c','#43e97b',
                '#fa709a','#30cfd0','#a8edea','#feb692','#96fbc4','#5ee7df','#b490ca','#fda085')
 
