@@ -54,11 +54,10 @@ Write-Host "=== ART Portfolio Time Share: $Label ==="
 # 1. ART portfolio projects (live)
 # ------------------------------------------------------------
 $PORTFOLIO_GID = "1213829329062998"
-$portfolioItems = [ordered]@{}
-$resp = Invoke-AsanaGet "$apiBase/portfolios/$PORTFOLIO_GID/items?opt_fields=gid,name,resource_type,archived&limit=100"
-foreach ($item in $resp.data) {
-    if ($item.resource_type -eq "project" -and -not [bool]$item.archived) { $portfolioItems[$item.gid] = $item.name }
-}
+# Shared engine walks nested sub-portfolios (ART portfolio is nested since 07.10.2026) and throws on
+# an unknown item type or a failed fetch - never returns a partial list.
+. "D:\project\guardrails\asana_portfolio.ps1"
+$portfolioItems = Get-AsanaPortfolioProjects -PortfolioGid $PORTFOLIO_GID -Fetcher { param($url) Invoke-AsanaGet $url } -Log
 $ART_GID_SET = @{}
 foreach ($g in $portfolioItems.Keys) { $ART_GID_SET[$g] = $true }
 Write-Host "[1] ART portfolio projects: $($portfolioItems.Count)"

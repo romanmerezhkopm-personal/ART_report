@@ -146,11 +146,11 @@ Write-Host "[1] Games Portfolio: $($projectMap.Count) live projects"
 #     Backlog") - exactly like the trusted report's dist-chart shows leftover backlog buckets.
 # ------------------------------------------------------------
 $ART_PORTFOLIO_GID = "1213829329062998"
-$artDeptMap = @{}
-$artDeptTop = (Invoke-AsanaGet "$apiBase/portfolios/$ART_PORTFOLIO_GID/items?opt_fields=gid,name,resource_type,archived&limit=100").data
-foreach ($item in $artDeptTop) {
-    if ($item.resource_type -eq "project" -and -not [bool]$item.archived) { $artDeptMap[$item.gid] = $item.name }
-}
+# Shared engine walks nested sub-portfolios (since 07.10.2026 the ART portfolio is nested: 10 of 18
+# projects sit inside CAS.*_ART sub-portfolios) and throws on an unknown item type or a failed fetch,
+# instead of silently returning fewer projects. Reuses Invoke-AsanaGet for its 429/5xx retries.
+. "D:\project\guardrails\asana_portfolio.ps1"
+$artDeptMap = Get-AsanaPortfolioProjects -PortfolioGid $ART_PORTFOLIO_GID -Fetcher { param($url) Invoke-AsanaGet $url } -Log
 $ART_DEPT_GID_SET = @{}
 foreach ($g in $artDeptMap.Keys) { $ART_DEPT_GID_SET[$g] = $true }
 Write-Host "[1b] ART department portfolio: $($artDeptMap.Count) projects"

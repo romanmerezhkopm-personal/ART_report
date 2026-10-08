@@ -24,11 +24,10 @@ $apiBase = "https://app.asana.com/api/1.0"
 
 # Live re-check of portfolio project count only (cheap, 1 call)
 $PORTFOLIO_GID = "1213829329062998"
-$portfolioProjCount = 13
-try {
-    $resp = Invoke-RestMethod "$apiBase/portfolios/$PORTFOLIO_GID/items?opt_fields=resource_type,archived&limit=100" -Headers $headers
-    $portfolioProjCount = @($resp.data | Where-Object { $_.resource_type -eq "project" -and -not [bool]$_.archived }).Count
-} catch {}
+# Shared engine walks nested sub-portfolios (ART portfolio is nested since 07.10.2026). No try/catch
+# with a hardcoded fallback count: a failed read must stop, not print a stale "13 projects" header.
+. "D:\project\guardrails\asana_portfolio.ps1"
+$portfolioProjCount = (Get-AsanaPortfolioProjects -PortfolioGid $PORTFOLIO_GID -RequestHeaders $headers).Count
 
 $dataObj = Get-Content $jsonFile -Raw -Encoding UTF8 | ConvertFrom-Json
 $teamMemberCount = @($dataObj.PSObject.Properties).Count

@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Games Portfolio — Разбивка времени Art Team по проектам</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#f5f6fa; color:#2d3748; font-size:14px; }
+.container { max-width:1100px; margin:0 auto; padding:24px; }
+.header { background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border-radius:12px; padding:28px 32px; margin-bottom:24px; }
+.header h1 { font-size:24px; font-weight:700; margin-bottom:6px; }
+.header .meta { opacity:.85; font-size:13px; }
+.header .stats { display:flex; gap:32px; margin-top:20px; flex-wrap:wrap; }
+.stat { text-align:center; }
+.stat-val { font-size:28px; font-weight:700; }
+.stat-lbl { font-size:12px; opacity:.8; margin-top:2px; }
+.notice-g { background:#f0fff4; border-left:4px solid #38a169; padding:12px 16px; border-radius:6px; margin-bottom:14px; font-size:13px; color:#276749; }
+.notice-y { background:#fffbea; border-left:4px solid #d69e2e; padding:12px 16px; border-radius:6px; margin-bottom:24px; font-size:13px; color:#744210; }
+.notice-y ul { margin:6px 0 0 18px; }
+details.month-block { margin-bottom:12px; background:white; border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,.08); overflow:hidden; }
+details.month-block > summary { cursor:pointer; padding:18px 24px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; font-weight:700; font-size:17px; list-style:none; display:flex; align-items:center; justify-content:space-between; }
+details.month-block > summary::-webkit-details-marker { display:none; }
+details.month-block > summary .sub { font-size:13px; font-weight:400; opacity:.9; margin-top:4px; display:block; }
+details.month-block > summary::after { content:"\25B8"; font-size:16px; }
+details.month-block[open] > summary::after { content:"\25BE"; }
+.month-body { padding:16px 24px 20px; }
+details.project-block { margin-bottom:8px; border:1px solid #e2e8f0; border-radius:8px; overflow:hidden; }
+details.project-block > summary { cursor:pointer; padding:12px 16px; background:#f7f8fc; font-weight:600; font-size:14px; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:16px; }
+details.project-block > summary::-webkit-details-marker { display:none; }
+details.project-block > summary::after { content:"\25B8"; color:#a0aec0; font-size:12px; }
+details.project-block[open] > summary::after { content:"\25BE"; }
+.proj-name { flex:1; }
+.proj-metrics { display:flex; align-items:center; gap:14px; flex-shrink:0; }
+.proj-bar-wrap { width:140px; background:#edf2f7; border-radius:4px; height:10px; }
+.proj-bar { height:10px; border-radius:4px; background:#667eea; }
+.proj-hours { font-weight:700; color:#2d3748; min-width:70px; text-align:right; }
+.proj-pct { color:#718096; font-weight:600; min-width:56px; text-align:right; }
+.emp-table { width:100%; border-collapse:collapse; }
+.emp-table th { background:#f0f4f8; padding:8px 14px; text-align:left; font-size:11px; color:#718096; text-transform:uppercase; letter-spacing:.4px; }
+.emp-table td { padding:8px 14px; border-bottom:1px solid #f0f2f7; font-size:13px; }
+.emp-table tr:hover td { background:#f7f8fc; }
+.emp-table .hours { font-weight:700; text-align:right; }
+.emp-table .pct { color:#718096; font-weight:600; text-align:right; }
+.total-row td { font-weight:700; background:#f7f8fc; }
+.no-activity { color:#a0aec0; font-size:13px; padding:8px 0; }
+</style>
+</head>
+<body><div class="container">
+<div class="header">
+  <h1>Games Portfolio — Разбивка времени Art Team по проектам</h1>
+  <div class="meta">Период: 01.06.2026 &#8212; 31.08.2026 &nbsp;|&nbsp; Портфель: Games Portfolio (26 проектов) &nbsp;|&nbsp; Команда: Art Team &nbsp;|&nbsp; Источник: Asana time_tracking_entries</div>
+  <div class="stats">
+    <div class="stat"><div class="stat-val">10665.36</div><div class="stat-lbl">Часов на портфель</div></div>
+    <div class="stat"><div class="stat-val">14142.07</div><div class="stat-lbl">Часов всего (Art Team)</div></div>
+    <div class="stat"><div class="stat-val">75.4%</div><div class="stat-lbl">Доля портфеля</div></div>
+    <div class="stat"><div class="stat-val">31</div><div class="stat-lbl">Исполнителей с портфельными часами</div></div>
+  </div>
+</div>
+<div class="notice-y">&#9888;&#65039; <strong>На что обратить внимание:</strong>
+  <ul>
+    <li><strong>55</strong> записей времени учтены в проекте <em>CAS.AI - Отпуска, больничные</em> &#8212; входят в знаменатель «общего времени» сотрудника и занижают % по проектам портфеля для тех, кто отдыхал в этот период.</li>
+  </ul>
+</div>
+<details class="month-block">
+  <summary>Июнь 2026<span class="sub">портфель: 3422.17 &#1095; &mdash; 76.3% от общего времени команды (4485.65 &#1095;)</span></summary>
+  <div class="month-body">
+    <details class="project-block">
+      <summary><span class="proj-name">Traffic Asphalt [com.psv.racing_games.trafic.pro.racer]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:20%;"></span></span><span class="proj-hours">696 &#1095;</span><span class="proj-pct">15.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Dmytro Anisimov</td><td class="hours">184</td><td class="pct">100%</td></tr>
+          <tr><td>Kateryna Ivanenko</td><td class="hours">168</td><td class="pct">77.8%</td></tr>
+          <tr><td>Denys Zapadenko</td><td class="hours">136</td><td class="pct">77.3%</td></tr>
+          <tr><td>Valentina Romashchenko</td><td class="hours">120</td><td class="pct">68.2%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">44</td><td class="pct">25%</td></tr>
+          <tr><td>Denis Kitsa</td><td class="hours">24</td><td class="pct">13.6%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">20</td><td class="pct">11.4%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">696</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Superhero Crime Open World War: [com.crime.superchero.open.world.war / 6748725018]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:17%;"></span></span><span class="proj-hours">587.76 &#1095;</span><span class="proj-pct">13.1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">130</td><td class="pct">74.7%</td></tr>
+          <tr><td>Vadym Flinta</td><td class="hours">122</td><td class="pct">69.3%</td></tr>
+          <tr><td>Volodymyr Demchenko</td><td class="hours">116</td><td class="pct">100%</td></tr>
+          <tr><td>Valentina Romashchenko</td><td class="hours">56</td><td class="pct">31.8%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">40</td><td class="pct">22.7%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">40</td><td class="pct">22.7%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">28</td><td class="pct">17.2%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">28</td><td class="pct">15.9%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">20</td><td class="pct">11%</td></tr>
+          <tr><td>Ruslan Onopko</td><td class="hours">7.76</td><td class="pct">7%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">587.76</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">DriveCSX [com.honanStudio.driveX / 6736580540]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:8%;"></span></span><span class="proj-hours">272.24 &#1095;</span><span class="proj-pct">6.1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Igor Kuznetsov</td><td class="hours">207.24</td><td class="pct">97.6%</td></tr>
+          <tr><td>Oleksandr Hrazhdan</td><td class="hours">45</td><td class="pct">26%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">16</td><td class="pct">9.1%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">4</td><td class="pct">2.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">272.24</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Screenshots</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:7%;"></span></span><span class="proj-hours">241 &#1095;</span><span class="proj-pct">5.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">56</td><td class="pct">31.1%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">48</td><td class="pct">25%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">36</td><td class="pct">20.5%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">35</td><td class="pct">21.5%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">32</td><td class="pct">20.5%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">24</td><td class="pct">13.6%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">10</td><td class="pct">5.7%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">241</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.product</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:6%;"></span></span><span class="proj-hours">212 &#1095;</span><span class="proj-pct">4.7%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olha Minko</td><td class="hours">96</td><td class="pct">54.5%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">56</td><td class="pct">30.9%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">36</td><td class="pct">20.5%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">24</td><td class="pct">15.4%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">212</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Banner ADS</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:6%;"></span></span><span class="proj-hours">208 &#1095;</span><span class="proj-pct">4.6%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">52</td><td class="pct">29.5%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">48</td><td class="pct">26.7%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">32</td><td class="pct">18.2%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">30</td><td class="pct">17%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">21</td><td class="pct">10.9%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">17</td><td class="pct">9.7%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">8</td><td class="pct">5.1%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">208</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">2D Art | UX/UI Design: Backlog</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:6%;"></span></span><span class="proj-hours">201.5 &#1095;</span><span class="proj-pct">4.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olena Bishko</td><td class="hours">54</td><td class="pct">29.8%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">52.5</td><td class="pct">32.3%</td></tr>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">44</td><td class="pct">25.3%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">35</td><td class="pct">18.2%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">16</td><td class="pct">9.1%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">201.5</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO In App Events (Promo)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:5%;"></span></span><span class="proj-hours">187 &#1095;</span><span class="proj-pct">4.2%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">60</td><td class="pct">31.2%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">40</td><td class="pct">25.6%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">32</td><td class="pct">17.8%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">24</td><td class="pct">13.6%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">12</td><td class="pct">7.4%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">8</td><td class="pct">4.5%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">8</td><td class="pct">4.5%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">3</td><td class="pct">1.7%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">187</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Tanks Merge: [com.psv.tank_defense.merge_attack]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:5%;"></span></span><span class="proj-hours">180 &#1095;</span><span class="proj-pct">4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Vadym Flinta</td><td class="hours">54</td><td class="pct">30.7%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">51</td><td class="pct">28.2%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">48</td><td class="pct">27.3%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">27</td><td class="pct">16.6%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">180</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Icons</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:5%;"></span></span><span class="proj-hours">168 &#1095;</span><span class="proj-pct">3.7%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Artem Surin</td><td class="hours">48</td><td class="pct">27.3%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">40</td><td class="pct">22.2%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">24</td><td class="pct">13.6%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">20</td><td class="pct">12.8%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">16</td><td class="pct">9.1%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">12</td><td class="pct">6.2%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">8</td><td class="pct">4.5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">168</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Animations: Backlog</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:4%;"></span></span><span class="proj-hours">152 &#1095;</span><span class="proj-pct">3.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Denis Kitsa</td><td class="hours">152</td><td class="pct">86.4%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">152</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Custom Product Pages (CPP)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">72 &#1095;</span><span class="proj-pct">1.6%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivanna Trotska</td><td class="hours">32</td><td class="pct">20.5%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">16</td><td class="pct">8.3%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">16</td><td class="pct">9.1%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">8</td><td class="pct">4.5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">72</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Cart Ride Obby [com.maxdigitart.obby.cart.ride.sandbox/6761916559?l] </span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">69.17 &#1095;</span><span class="proj-pct">1.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Yurii Polukhin</td><td class="hours">63.84</td><td class="pct">36.8%</td></tr>
+          <tr><td>Ruslan Onopko</td><td class="hours">5.33</td><td class="pct">4.8%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">69.17</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">3D Art: Backlog</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">64 &#1095;</span><span class="proj-pct">1.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Oleksandr Hrazhdan</td><td class="hours">64</td><td class="pct">37%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">64</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">RiC: [com.unrealgames.RacinginCar2020 / 1570315891]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">48 &#1095;</span><span class="proj-pct">1.1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Artem Surin</td><td class="hours">48</td><td class="pct">27.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">48</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.ads (web+блог)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">32 &#1095;</span><span class="proj-pct">0.7%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olha Minko</td><td class="hours">32</td><td class="pct">18.2%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">32</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Stranger School [com.neura.schoolboyandgranny/6785540784]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">11.5 &#1095;</span><span class="proj-pct">0.3%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivan Monarkha</td><td class="hours">8</td><td class="pct">4.5%</td></tr>
+          <tr><td>Yevhenii Sirenko</td><td class="hours">3.5</td><td class="pct">2.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">11.5</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Car Crush: [car.race.descent.crash.simulator.drive]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">8 &#1095;</span><span class="proj-pct">0.2%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">8</td><td class="pct">4.5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">8</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Feature Graphics - ASO Banner</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">8 &#1095;</span><span class="proj-pct">0.2%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Tetiana Bielousova</td><td class="hours">8</td><td class="pct">4.9%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">8</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ArrowRush: Tap &amp; Clear Game[com.glowfallllc.arrowrush]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">4 &#1095;</span><span class="proj-pct">0.1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">4</td><td class="pct">2.2%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">4</td><td></td></tr>
+        </tbody></table>
+    </details>
+  </div>
+</details>
+<details class="month-block">
+  <summary>Июль 2026<span class="sub">портфель: 3721.32 &#1095; &mdash; 75.1% от общего времени команды (4956.72 &#1095;)</span></summary>
+  <div class="month-body">
+    <details class="project-block">
+      <summary><span class="proj-name">Superhero Crime Open World War: [com.crime.superchero.open.world.war / 6748725018]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:21%;"></span></span><span class="proj-hours">785.84 &#1095;</span><span class="proj-pct">15.9%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Vadym Flinta</td><td class="hours">184</td><td class="pct">86.8%</td></tr>
+          <tr><td>Valentina Romashchenko</td><td class="hours">96</td><td class="pct">52.2%</td></tr>
+          <tr><td>Oleksandr Hrazhdan</td><td class="hours">76</td><td class="pct">36.5%</td></tr>
+          <tr><td>Kateryna Ivanenko</td><td class="hours">72</td><td class="pct">39.1%</td></tr>
+          <tr><td>Volodymyr Demchenko</td><td class="hours">69</td><td class="pct">37.3%</td></tr>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">56</td><td class="pct">28.6%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">48</td><td class="pct">25.5%</td></tr>
+          <tr><td>Denis Kitsa</td><td class="hours">40</td><td class="pct">19.6%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">40</td><td class="pct">21.9%</td></tr>
+          <tr><td>Denys Zapadenko</td><td class="hours">34</td><td class="pct">18.3%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">30</td><td class="pct">16.3%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">28</td><td class="pct">15.2%</td></tr>
+          <tr><td>Ruslan Onopko</td><td class="hours">12.84</td><td class="pct">15.8%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">785.84</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Traffic Asphalt [com.psv.racing_games.trafic.pro.racer]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:18%;"></span></span><span class="proj-hours">682 &#1095;</span><span class="proj-pct">13.8%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Dmytro Anisimov</td><td class="hours">176</td><td class="pct">68%</td></tr>
+          <tr><td>Denys Zapadenko</td><td class="hours">152</td><td class="pct">81.7%</td></tr>
+          <tr><td>Kateryna Ivanenko</td><td class="hours">104</td><td class="pct">56.5%</td></tr>
+          <tr><td>Denis Kitsa</td><td class="hours">84</td><td class="pct">41.2%</td></tr>
+          <tr><td>Valentina Romashchenko</td><td class="hours">72</td><td class="pct">39.1%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">60</td><td class="pct">23.7%</td></tr>
+          <tr><td>Volodymyr Demchenko</td><td class="hours">18</td><td class="pct">9.7%</td></tr>
+          <tr><td>Kseniia Onyshchenko</td><td class="hours">16</td><td class="pct">100%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">682</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">DriveCSX [com.honanStudio.driveX / 6736580540]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:9%;"></span></span><span class="proj-hours">317.58 &#1095;</span><span class="proj-pct">6.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Anna Hrabko</td><td class="hours">92</td><td class="pct">36.4%</td></tr>
+          <tr><td>Igor Kuznetsov</td><td class="hours">87.58</td><td class="pct">46.4%</td></tr>
+          <tr><td>Oleksandr Hrazhdan</td><td class="hours">58</td><td class="pct">27.9%</td></tr>
+          <tr><td>Denis Kitsa</td><td class="hours">40</td><td class="pct">19.6%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">24</td><td class="pct">13%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">16</td><td class="pct">8.7%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">317.58</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Tanks Merge: [com.psv.tank_defense.merge_attack]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:9%;"></span></span><span class="proj-hours">317.5 &#1095;</span><span class="proj-pct">6.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Anna Hrabko</td><td class="hours">101.07</td><td class="pct">39.9%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">48</td><td class="pct">26.1%</td></tr>
+          <tr><td>Yevhenii Sirenko</td><td class="hours">40.34</td><td class="pct">24.7%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">38.5</td><td class="pct">21.1%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">36</td><td class="pct">19.6%</td></tr>
+          <tr><td>Vadym Flinta</td><td class="hours">28</td><td class="pct">13.2%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">12</td><td class="pct">6.5%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">12</td><td class="pct">6.5%</td></tr>
+          <tr><td>Ruslan Onopko</td><td class="hours">1.59</td><td class="pct">2%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">317.5</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Banner ADS</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:7%;"></span></span><span class="proj-hours">246 &#1095;</span><span class="proj-pct">5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivan Monarkha</td><td class="hours">53</td><td class="pct">28.8%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">52</td><td class="pct">28.3%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">44</td><td class="pct">23.9%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">42</td><td class="pct">22.3%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">27</td><td class="pct">14.7%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">20</td><td class="pct">10.9%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">8</td><td class="pct">4.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">246</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Icons</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:4%;"></span></span><span class="proj-hours">147 &#1095;</span><span class="proj-pct">3%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivanna Trotska</td><td class="hours">51</td><td class="pct">27.7%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">32</td><td class="pct">17.4%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">20</td><td class="pct">10.9%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">16</td><td class="pct">8.7%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">16</td><td class="pct">8.7%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">12</td><td class="pct">6.4%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">147</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO In App Events (Promo)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:4%;"></span></span><span class="proj-hours">132 &#1095;</span><span class="proj-pct">2.7%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">28</td><td class="pct">15.2%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">28</td><td class="pct">15.2%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">20</td><td class="pct">10.9%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">16</td><td class="pct">8.7%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">16</td><td class="pct">8.7%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">12</td><td class="pct">6.4%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">12</td><td class="pct">6.5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">132</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.product</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">130 &#1095;</span><span class="proj-pct">2.6%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olena Bishko</td><td class="hours">56</td><td class="pct">30.4%</td></tr>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">44</td><td class="pct">22.4%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">30</td><td class="pct">16.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">130</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Cart Ride Obby [com.maxdigitart.obby.cart.ride.sandbox/6761916559?l] </span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">126 &#1095;</span><span class="proj-pct">2.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Oleksii Yurikov</td><td class="hours">114</td><td class="pct">62%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">8</td><td class="pct">4.3%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">4</td><td class="pct">2.2%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">126</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Screenshots</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">113 &#1095;</span><span class="proj-pct">2.3%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivanna Trotska</td><td class="hours">41</td><td class="pct">22.3%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">32</td><td class="pct">17.4%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">20</td><td class="pct">10.6%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">12</td><td class="pct">6.5%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">8</td><td class="pct">4.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">113</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.ads (web+блог)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">112.5 &#1095;</span><span class="proj-pct">2.3%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">56</td><td class="pct">28.6%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">39.5</td><td class="pct">21.4%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">17</td><td class="pct">9.2%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">112.5</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Stranger School [com.neura.schoolboyandgranny/6785540784]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">89.48 &#1095;</span><span class="proj-pct">1.8%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">52</td><td class="pct">28.3%</td></tr>
+          <tr><td>Ivan Symkanych</td><td class="hours">15.98</td><td class="pct">9.7%</td></tr>
+          <tr><td>Yevhenii Sirenko</td><td class="hours">11.5</td><td class="pct">7%</td></tr>
+          <tr><td>Volodymyr Demchenko</td><td class="hours">10</td><td class="pct">5.4%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">89.48</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Drive X Unlimited [com.psv.drivex.racing.unlimited]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">88 &#1095;</span><span class="proj-pct">1.8%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olha Minko</td><td class="hours">42</td><td class="pct">22.8%</td></tr>
+          <tr><td>Danylo Kuznetsov</td><td class="hours">23</td><td class="pct">100%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">23</td><td class="pct">12.5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">88</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Gugu Gaga Penguin: Obby Games [rainbow.dash.obby/6790723051]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">87.17 &#1095;</span><span class="proj-pct">1.8%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Yurii Polukhin</td><td class="hours">76.17</td><td class="pct">46.1%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">11</td><td class="pct">6%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">87.17</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">2D Art | UX/UI Design: Backlog</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">81 &#1095;</span><span class="proj-pct">1.6%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">40</td><td class="pct">20.4%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">24</td><td class="pct">13.2%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">17</td><td class="pct">9.2%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">81</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.socialmedia (SMM)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">72 &#1095;</span><span class="proj-pct">1.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Nataliia Bilous</td><td class="hours">40</td><td class="pct">100%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">24</td><td class="pct">13%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">8</td><td class="pct">4.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">72</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Car Jumping: Crash &amp; Fly [com.psv.crash.fly.car.jumping]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">69 &#1095;</span><span class="proj-pct">1.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Igor Kuznetsov</td><td class="hours">61</td><td class="pct">32.3%</td></tr>
+          <tr><td>Oleksandr Hrazhdan</td><td class="hours">8</td><td class="pct">3.8%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">69</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Feature Graphics - ASO Banner</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">50 &#1095;</span><span class="proj-pct">1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivanna Trotska</td><td class="hours">22</td><td class="pct">12%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">20</td><td class="pct">10.9%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">8</td><td class="pct">4.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">50</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">RiC: [com.unrealgames.RacinginCar2020 / 1570315891]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">33 &#1095;</span><span class="proj-pct">0.7%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olha Minko</td><td class="hours">33</td><td class="pct">17.9%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">33</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.the_rest (one pager, презентації, тощо)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">22 &#1095;</span><span class="proj-pct">0.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olena Bishko</td><td class="hours">12</td><td class="pct">6.5%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">10</td><td class="pct">5.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">22</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ArrowRush: Tap &amp; Clear Game[com.glowfallllc.arrowrush]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">8.25 &#1095;</span><span class="proj-pct">0.2%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Yevhenii Sirenko</td><td class="hours">8.25</td><td class="pct">5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">8.25</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">3D Art: Backlog</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">8 &#1095;</span><span class="proj-pct">0.2%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kateryna Ivanenko</td><td class="hours">8</td><td class="pct">4.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">8</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Custom Product Pages (CPP)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">4 &#1095;</span><span class="proj-pct">0.1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Alisa Nadvorna</td><td class="hours">4</td><td class="pct">2.1%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">4</td><td></td></tr>
+        </tbody></table>
+    </details>
+  </div>
+</details>
+<details class="month-block">
+  <summary>Август 2026<span class="sub">портфель: 3521.87 &#1095; &mdash; 74.9% от общего времени команды (4699.7 &#1095;)</span></summary>
+  <div class="month-body">
+    <details class="project-block">
+      <summary><span class="proj-name">Traffic Asphalt [com.psv.racing_games.trafic.pro.racer]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:24%;"></span></span><span class="proj-hours">839 &#1095;</span><span class="proj-pct">17.9%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kseniia Onyshchenko</td><td class="hours">160</td><td class="pct">100%</td></tr>
+          <tr><td>Denys Zapadenko</td><td class="hours">160</td><td class="pct">100%</td></tr>
+          <tr><td>Dmytro Anisimov</td><td class="hours">114</td><td class="pct">73.1%</td></tr>
+          <tr><td>Kateryna Ivanenko</td><td class="hours">100</td><td class="pct">80.6%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">99</td><td class="pct">64.7%</td></tr>
+          <tr><td>Volodymyr Demchenko</td><td class="hours">76</td><td class="pct">51.4%</td></tr>
+          <tr><td>Valentina Romashchenko</td><td class="hours">64</td><td class="pct">40%</td></tr>
+          <tr><td>Pavlo Ishutin</td><td class="hours">34</td><td class="pct">100%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr><td>Katerina Grimailo</td><td class="hours">8</td><td class="pct">11.1%</td></tr>
+          <tr><td>Denis Kitsa</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">839</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Car Jumping: Crash &amp; Fly [com.psv.crash.fly.car.jumping]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:12%;"></span></span><span class="proj-hours">410 &#1095;</span><span class="proj-pct">8.7%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Igor Kuznetsov</td><td class="hours">175</td><td class="pct">100%</td></tr>
+          <tr><td>Oleksandr Hrazhdan</td><td class="hours">120</td><td class="pct">74.9%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">48</td><td class="pct">30%</td></tr>
+          <tr><td>Katerina Grimailo</td><td class="hours">24</td><td class="pct">33.3%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">23</td><td class="pct">15%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">20</td><td class="pct">12.5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">410</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Superhero Crime Open World War: [com.crime.superchero.open.world.war / 6748725018]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:8%;"></span></span><span class="proj-hours">288.67 &#1095;</span><span class="proj-pct">6.1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Vadym Flinta</td><td class="hours">74</td><td class="pct">46.2%</td></tr>
+          <tr><td>Volodymyr Demchenko</td><td class="hours">72</td><td class="pct">48.6%</td></tr>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">36</td><td class="pct">22.5%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">31</td><td class="pct">19.4%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">24</td><td class="pct">15%</td></tr>
+          <tr><td>Ruslan Onopko</td><td class="hours">23.67</td><td class="pct">20%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">16</td><td class="pct">9.8%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">12</td><td class="pct">7.8%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">288.67</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.ads (web+блог)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:7%;"></span></span><span class="proj-hours">264 &#1095;</span><span class="proj-pct">5.6%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olena Bishko</td><td class="hours">104</td><td class="pct">68.4%</td></tr>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">96</td><td class="pct">60%</td></tr>
+          <tr><td>Denis Kitsa</td><td class="hours">40</td><td class="pct">25%</td></tr>
+          <tr><td>Nataliia Bilous</td><td class="hours">24</td><td class="pct">16.7%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">264</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO In App Events (Promo)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:7%;"></span></span><span class="proj-hours">258 &#1095;</span><span class="proj-pct">5.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Artem Surin</td><td class="hours">60</td><td class="pct">37.5%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">56</td><td class="pct">35%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">48</td><td class="pct">30%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">32</td><td class="pct">20%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">30</td><td class="pct">19%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">24</td><td class="pct">15%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">8</td><td class="pct">4.9%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">258</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Obby All Games [com.psv.obby.all_games]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:6%;"></span></span><span class="proj-hours">210.53 &#1095;</span><span class="proj-pct">4.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Vadym Flinta</td><td class="hours">78</td><td class="pct">48.8%</td></tr>
+          <tr><td>Yurii Polukhin</td><td class="hours">56.53</td><td class="pct">34.8%</td></tr>
+          <tr><td>Valentina Romashchenko</td><td class="hours">56</td><td class="pct">35%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">20</td><td class="pct">12.2%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">210.53</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Icons</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:5%;"></span></span><span class="proj-hours">189 &#1095;</span><span class="proj-pct">4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">58</td><td class="pct">36.7%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">32</td><td class="pct">20%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">32</td><td class="pct">20%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">28</td><td class="pct">17.5%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">27</td><td class="pct">16.9%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">12</td><td class="pct">7.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">189</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.the_rest (one pager, презентації, тощо)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">120 &#1095;</span><span class="proj-pct">2.6%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Nataliia Bilous</td><td class="hours">88</td><td class="pct">61.1%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">32</td><td class="pct">21.1%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">120</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Banner ADS</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">116 &#1095;</span><span class="proj-pct">2.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">44</td><td class="pct">27.5%</td></tr>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">30</td><td class="pct">19%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">16</td><td class="pct">10%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">12</td><td class="pct">7.3%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">6</td><td class="pct">3.8%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">116</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.product</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">101 &#1095;</span><span class="proj-pct">2.1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Olha Minko</td><td class="hours">101</td><td class="pct">63.1%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">101</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">2D Art | UX/UI Design: Backlog</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">79.5 &#1095;</span><span class="proj-pct">1.7%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Katerina Grimailo</td><td class="hours">40</td><td class="pct">55.6%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">20</td><td class="pct">12.5%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">10.5</td><td class="pct">6.6%</td></tr>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">1</td><td class="pct">0.6%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">79.5</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Drive X Unlimited [com.psv.drivex.racing.unlimited]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">78.5 &#1095;</span><span class="proj-pct">1.7%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivanna Trotska</td><td class="hours">30</td><td class="pct">18.8%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">28</td><td class="pct">17.5%</td></tr>
+          <tr><td>Olha Minko</td><td class="hours">20.5</td><td class="pct">12.8%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">78.5</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Tanks Merge: [com.psv.tank_defense.merge_attack]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">77.42 &#1095;</span><span class="proj-pct">1.6%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kateryna Svyrydova</td><td class="hours">40</td><td class="pct">25.3%</td></tr>
+          <tr><td>Yevhenii Sirenko</td><td class="hours">14.42</td><td class="pct">14%</td></tr>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">12</td><td class="pct">7.5%</td></tr>
+          <tr><td>Tetiana Bielousova</td><td class="hours">11</td><td class="pct">7.2%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">77.42</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Gugu Gaga Penguin: Obby Games [rainbow.dash.obby/6790723051]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">69 &#1095;</span><span class="proj-pct">1.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Oleksii Yurikov</td><td class="hours">49</td><td class="pct">30.6%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">12</td><td class="pct">7.5%</td></tr>
+          <tr><td>Yurii Polukhin</td><td class="hours">8</td><td class="pct">4.9%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">69</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Custom Product Pages (CPP)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">68 &#1095;</span><span class="proj-pct">1.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivanna Trotska</td><td class="hours">42</td><td class="pct">26.2%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">14</td><td class="pct">8.8%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">8</td><td class="pct">4.9%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">4</td><td class="pct">2.5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">68</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">CAS.socialmedia (SMM)</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">67 &#1095;</span><span class="proj-pct">1.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Nataliia Bilous</td><td class="hours">32</td><td class="pct">22.2%</td></tr>
+          <tr><td>Olena Bishko</td><td class="hours">16</td><td class="pct">10.5%</td></tr>
+          <tr><td>Ivan Monarkha</td><td class="hours">11</td><td class="pct">6.9%</td></tr>
+          <tr><td>Viktoriia Bahlai</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">67</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Cart Ride Obby [com.maxdigitart.obby.cart.ride.sandbox/6761916559?l] </span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">65 &#1095;</span><span class="proj-pct">1.4%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Artem Surin</td><td class="hours">44</td><td class="pct">27.5%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">16</td><td class="pct">10%</td></tr>
+          <tr><td>Oleksii Yurikov</td><td class="hours">5</td><td class="pct">3.1%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">65</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">RiC: [com.unrealgames.RacinginCar2020 / 1570315891]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">60 &#1095;</span><span class="proj-pct">1.3%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Denis Kitsa</td><td class="hours">32</td><td class="pct">20%</td></tr>
+          <tr><td>Anna Hrabko</td><td class="hours">16</td><td class="pct">10%</td></tr>
+          <tr><td>Oleksandr Hrazhdan</td><td class="hours">12</td><td class="pct">7.5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">60</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ASO Screenshots</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">54 &#1095;</span><span class="proj-pct">1.1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivan Monarkha</td><td class="hours">29</td><td class="pct">18.1%</td></tr>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">9</td><td class="pct">5.6%</td></tr>
+          <tr><td>Alisa Nadvorna</td><td class="hours">8</td><td class="pct">4.9%</td></tr>
+          <tr><td>Veronika Velykodna-Chernienko</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">54</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">ArrowRush: Tap &amp; Clear Game[com.glowfallllc.arrowrush]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">45.5 &#1095;</span><span class="proj-pct">1%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Kseniia Ozerianova</td><td class="hours">24</td><td class="pct">15%</td></tr>
+          <tr><td>Artem Surin</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr><td>Ivanna Trotska</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr><td>Yevhenii Sirenko</td><td class="hours">5.5</td><td class="pct">5.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">45.5</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Animations: Backlog</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">28.25 &#1095;</span><span class="proj-pct">0.6%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Oleksandr Hrazhdan</td><td class="hours">20.25</td><td class="pct">12.6%</td></tr>
+          <tr><td>Vadym Flinta</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">28.25</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">Stranger School [com.neura.schoolboyandgranny/6785540784]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">25.5 &#1095;</span><span class="proj-pct">0.5%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Ivanna Trotska</td><td class="hours">24</td><td class="pct">15%</td></tr>
+          <tr><td>Ruslan Onopko</td><td class="hours">1.5</td><td class="pct">1.3%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">25.5</td><td></td></tr>
+        </tbody></table>
+    </details>
+    <details class="project-block">
+      <summary><span class="proj-name">DriveCSX [com.honanStudio.driveX / 6736580540]</span><span class="proj-metrics"><span class="proj-bar-wrap"><span class="proj-bar" style="display:block;width:3%;"></span></span><span class="proj-hours">8 &#1095;</span><span class="proj-pct">0.2%</span></span></summary>
+      <table class="emp-table">
+        <thead><tr><th>Сотрудник</th><th style="text-align:right;">Часов</th><th style="text-align:right;">% от личного времени</th></tr></thead>
+        <tbody>
+          <tr><td>Denis Kitsa</td><td class="hours">8</td><td class="pct">5%</td></tr>
+          <tr class="total-row"><td>Итого по проекту</td><td class="hours">8</td><td></td></tr>
+        </tbody></table>
+    </details>
+  </div>
+</details>
+<div style="text-align:center;color:#a0aec0;font-size:12px;padding:24px 0">Сгенерировано: 08.10.2026 14:23 &nbsp;|&nbsp; Asana time_tracking_entries &nbsp;|&nbsp; 01.06.2026 &#8212; 31.08.2026</div>
+</div></body></html>
