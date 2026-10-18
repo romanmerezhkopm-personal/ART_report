@@ -15,6 +15,9 @@
 | `run_art_report.ps1` | Генератор отчёта (единственный актуальный скрипт) — `& run_art_report.ps1 -Start yyyy-MM-dd -End yyyy-MM-dd [-Label "..."]` |
 | `ART_report_YYYY-MM.html` | Готовые отчёты по месяцам |
 | `may_time_data.json` | Кэш time_tracking_entries за май 2026 (129 задач) |
+| `art_tasks_week.py` | Скилл `/art_tasks_week_report` (с 18.10.2026): арт-задачи (префикс 2D/3D/VFX/ANIM), созданные за период в портфеле (по умолчанию Active Portfolio Games), сгруппированные по проектам → PDF со ссылками. `--from`/`--to` обязательны. Отдельный от часового отчёта инструмент: ищет по дате создания задачи, а не по `time_tracking_entries` |
+| `test_art_tasks_week.py` | Оффлайн-тест правила префикса и границ периода на реальных названиях |
+| `art_tasks_week*.pdf` / `.json` | Результаты `art_tasks_week.py` (`art_tasks_week.pdf` — первый прогон, 12–16.10.2026) |
 | `CONTEXT.md` | Этот файл |
 
 ---
