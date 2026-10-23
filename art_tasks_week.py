@@ -2,7 +2,7 @@
 
 Used by the /art_tasks_week_report skill (D:\\project\\.claude\\skills\\art_tasks_week_report).
 
-    python art_tasks_week.py --from 2026-10-12 --to 2026-10-16 [--portfolio GID|URL] [--out PATH.pdf]
+    python art_tasks_week.py --from 2026-10-12 --to 2026-10-16 [--portfolio GID|URL] [--out PATH.pdf] [--open-only]
 
 Dates are inclusive, Europe/Kyiv local time, and REQUIRED — there is deliberately no default
 period: Roman asked that the range is always confirmed with him before a run (18.10.2026).
@@ -223,6 +223,15 @@ def collect(d_from, d_to, portfolio):
             "near_miss": sorted(near_miss, key=key)}
 
 
+def only_open(data):
+    """--open-only: drop completed tasks from every list; completion is as of this run (Roman, 23.10.2026)."""
+    kept = dict(data, open_only=True)
+    kept["dropped_completed"] = sum(r["completed"] for k in ("art", "outside") for r in data[k])
+    for k in ("art", "outside", "near_miss"):
+        kept[k] = [r for r in data[k] if not r["completed"]]
+    return kept
+
+
 CSS = """
 @page { size: A4; margin: 14mm 12mm; }
 body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10.5pt; color: #1f2328; }
@@ -272,8 +281,9 @@ def build_html(data, portfolio_name):
     for r in data["art"]:
         by_tag[r["art"]] = by_tag.get(r["art"], 0) + 1
     parts = [f"<html><head><meta charset=\"utf-8\"><title>Арт-задачи {d1}–{d2}</title><style>{CSS}</style></head><body>",
-             f"<h1>Арт-задачи, созданные {d1} – {d2}</h1>",
+             f"<h1>{'Незакрытые арт-задачи' if data.get('open_only') else 'Арт-задачи'}, созданные {d1} – {d2}</h1>",
              f"<div class=\"meta\">Портфель: {escape(portfolio_name)} · префиксы 2D / 3D / VFX / ANIM · "
+             + (f"без закрытых на момент выгрузки (убрано {data['dropped_completed']}) · " if data.get("open_only") else "") +
              f"время киевское · сформировано {escape(data['generated'])}</div>",
              "<div class=\"summary\"><b>%d</b> задач в <b>%d</b> проектах%s</div>" % (
                  len(data["art"]), len(groups),
@@ -327,7 +337,8 @@ def main():
     ap.add_argument("--from", dest="d_from", required=True, help="first day, YYYY-MM-DD (Kyiv), inclusive")
     ap.add_argument("--to", dest="d_to", required=True, help="last day, YYYY-MM-DD (Kyiv), inclusive")
     ap.add_argument("--portfolio", default=DEFAULT_PORTFOLIO, help="portfolio GID or URL (default: Active Portfolio Games)")
-    ap.add_argument("--out", help="PDF path (default: art_tasks_week_<from>_<to>.pdf next to this script)")
+    ap.add_argument("--out", help="PDF path (default: art_tasks_week_<from>_<to>[_open].pdf next to this script)")
+    ap.add_argument("--open-only", action="store_true", help="keep only tasks that are not completed at run time")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -336,9 +347,12 @@ def main():
         ap.error("--to is earlier than --from")
     m = re.search(r"portfolio/(\d+)", a.portfolio)
     portfolio = m.group(1) if m else a.portfolio.strip()
-    out = os.path.abspath(a.out or os.path.join(HERE, f"art_tasks_week_{d_from}_{d_to}.pdf"))
+    suffix = "_open" if a.open_only else ""
+    out = os.path.abspath(a.out or os.path.join(HERE, f"art_tasks_week_{d_from}_{d_to}{suffix}.pdf"))
 
     data = collect(d_from, d_to, portfolio)
+    if a.open_only:
+        data = only_open(data)
     pf_name = api_get(f"/portfolios/{portfolio}", {"opt_fields": "name"})["data"]["name"]
     with open(os.path.splitext(out)[0] + ".json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)
@@ -349,6 +363,8 @@ def main():
     print(f"Portfolio {pf_name}: {data['projects_in_portfolio']} projects; searched {data['searched']} tasks created in range")
     cc = data["cross_check"]
     print(f"Cross-check: {cc['top_level_in_range']} top-level portfolio tasks in range, {cc['missing_from_search']} missing from search (added)")
+    if data.get("open_only"):
+        print(f"Filter: open only — {data['dropped_completed']} completed art tasks dropped")
     print(f"Art tasks in portfolio: {len(data['art'])}; outside portfolio: {len(data['outside'])}; "
           f"near misses to review: {len(data['near_miss'])}")
     for r in data["near_miss"]:

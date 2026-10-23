@@ -43,6 +43,18 @@ PROJECT_NAMES = {
     "AI Framework": "AI Framework",
 }
 
+# --open-only on real records of the 19–23.10.2026 run: completed ones go, open ones stay (23.10.2026).
+REC = lambda gid, name, done: {"gid": gid, "name": name, "completed": done}
+OPEN_ONLY_IN = {
+    "art": [REC("1219732937109862", "[2D ART] Скин 1 для AI Block Blast", False),
+            REC("1219691759490953", "[2D ASO Icon Promo Art] <6824512679> Obby All Games", True)],
+    "outside": [REC("1219815099491955", "3D Скопировать / генерировать core gameplay", False)],
+    "near_miss": [REC("1219732937109853", "[PO] Подготовка списка необходимого арта", True),
+                  REC("1219748864354629", "[CAS REST ART] CAS Publishing | DriveCSX – Product-Led Monetization Case Study Design", False)],
+}
+OPEN_ONLY_WANT = {"art": ["1219732937109862"], "outside": ["1219815099491955"], "near_miss": ["1219748864354629"],
+                  "dropped_completed": 1}
+
 
 def main():
     fails = 0
@@ -66,7 +78,12 @@ def main():
         if a.short_project(full) != want:
             fails += 1
             print(f"FAIL short {full!r}: {a.short_project(full)!r}")
-    total = len(MUST_PASS) + len(MUST_BLOCK) + len(BOUNDS) + len(PROJECT_NAMES)
+    got = a.only_open(OPEN_ONLY_IN)
+    got = {k: [r["gid"] for r in got[k]] for k in ("art", "outside", "near_miss")} | {"dropped_completed": got["dropped_completed"]}
+    if got != OPEN_ONLY_WANT:
+        fails += 1
+        print(f"FAIL open-only: {got} != {OPEN_ONLY_WANT}")
+    total = len(MUST_PASS) + len(MUST_BLOCK) + len(BOUNDS) + len(PROJECT_NAMES) + 1
     print(f"{total - fails}/{total} OK")
     raise SystemExit(1 if fails else 0)
 
