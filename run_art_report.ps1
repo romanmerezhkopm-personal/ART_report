@@ -126,8 +126,10 @@ $TARGET_STATUSES  = @{
     "1213634616829012" = "In test"
 }
 
-# Excluded from all report aggregations: Roman + live members of "GameDev - ALL Team" (rule and
-# reasons in art_exclusions.ps1). Every filter below reads $EXCLUDED_ASSIGNEES, previous months too.
+# Excluded people: $ART_BASE_EXCLUDED + live members of "GameDev - ALL Team" (rule and reasons in
+# art_exclusions.ps1). Despite the name, $EXCLUDED_ASSIGNEES is matched against who LOGGED the time
+# (Get-ArtPersonHours) everywhere hours are counted, previous months too; only 0 h status-based tasks
+# are still matched by their assignee.
 . "$BASE\art_exclusions.ps1"
 try {
     $exclusion = Resolve-ArtExcludedAssignees $ART_BASE_EXCLUDED (Get-AsanaTeamMemberNames $GAMEDEV_TEAM_GID $headers) (Get-AsanaTeamMemberNames $ART_TEAM_GID $headers)
@@ -226,8 +228,8 @@ Write-Host "Total unique tasks: $($allTasks.Count)"
 # STEP 2 - Get time_tracking_entries filtered by period
 # ============================================================
 Write-Host "`n[2/3] Fetching time entries for $StartDisp - $EndDisp ..."
-$taskMinutes = @{}
-$taskLoggers = @{}
+$taskMinutes  = @{}
+$taskByLogger = @{}   # gid -> @{ logger name = minutes in period } - hours belong to who logged them (art_exclusions.ps1)
 $i = 0
 foreach ($gid in @($allTasks.Keys)) {
     $i++
@@ -236,14 +238,15 @@ foreach ($gid in @($allTasks.Keys)) {
         $url  = "$apiBase/tasks/$gid/time_tracking_entries?opt_fields=duration_minutes,entered_on,created_by.name&limit=100"
         $resp = Invoke-RestMethod $url -Headers $headers
         $tot  = 0
-        $loggers = [System.Collections.Generic.HashSet[string]]::new()
+        $bl   = @{}
         foreach ($e in $resp.data) {
             if ($e.entered_on -and $e.entered_on -ge $Start -and $e.entered_on -le $End) {
                 $tot += [int]$e.duration_minutes
-                if ($e.created_by -and $e.created_by.name) { [void]$loggers.Add([string]$e.created_by.name) }
+                $who  = if ($e.created_by -and $e.created_by.name) { [string]$e.created_by.name } else { '(unknown)' }
+                $bl[$who] = [int]$bl[$who] + [int]$e.duration_minutes
             }
         }
-        if ($tot -gt 0) { $taskMinutes[$gid] = $tot; $taskLoggers[$gid] = ($loggers -join ', ') }
+        if ($tot -gt 0) { $taskMinutes[$gid] = $tot; $taskByLogger[$gid] = $bl }
     } catch {}
 }
 Write-Host "Tasks with tracked time in period: $($taskMinutes.Count)"
@@ -332,22 +335,29 @@ foreach ($uGid in $teamMembers.Keys) {
 }
 Write-Host "  External candidate tasks: $($candidates.Count)"
 
+# Outside the portfolio only Art Team members' OWN entries count (hours belong to who logged them -
+# a developer's or PO's time on an artist's game task is not ART work).
+$artTeamNames = @($teamMembers.Values)
 $j = 0
 foreach ($gid in @($candidates.Keys)) {
     $j++
     if ($j % 50 -eq 0) { Write-Host "  [$j / $($candidates.Count)]..." }
     try {
-        $url  = "$apiBase/tasks/$gid/time_tracking_entries?opt_fields=duration_minutes,entered_on&limit=100"
+        $url  = "$apiBase/tasks/$gid/time_tracking_entries?opt_fields=duration_minutes,entered_on,created_by.name&limit=100"
         $resp = Invoke-RestMethod $url -Headers $headers
         $tot  = 0
+        $bl   = @{}
         foreach ($e in $resp.data) {
-            if ($e.entered_on -and $e.entered_on -ge $Start -and $e.entered_on -le $End) {
+            if ($e.entered_on -and $e.entered_on -ge $Start -and $e.entered_on -le $End -and
+                $e.created_by -and $artTeamNames -contains [string]$e.created_by.name) {
                 $tot += [int]$e.duration_minutes
+                $bl[[string]$e.created_by.name] = [int]$bl[[string]$e.created_by.name] + [int]$e.duration_minutes
             }
         }
         if ($tot -gt 0) {
             $allTasks[$gid]     = $candidates[$gid]
             $taskMinutes[$gid]  = $tot
+            $taskByLogger[$gid] = $bl
             $externalGids[$gid] = $true
         }
     } catch {}
@@ -385,7 +395,8 @@ foreach ($gid in $taskMinutes.Keys) {
         attributed_project = $attrProject
         external           = $isExt
         minutes            = $taskMinutes[$gid]
-        hours              = [math]::Round($taskMinutes[$gid] / 60, 2)
+        hours              = [math]::Round($taskMinutes[$gid] / 60, 2)   # raw, all loggers - readers use Get-ArtPersonHours
+        by_logger          = if ($taskByLogger.ContainsKey($gid)) { $taskByLogger[$gid] } else { @{} }
         is_status_based    = $isSB
         status_name        = if ($isSB) { $allTasks[$gid].status_name } else { "" }
     }
@@ -462,18 +473,22 @@ foreach ($gid in $BACKLOG_LABELS.Keys)  { $rawProjStats[$gid] = @{ name = $BACKL
 # collected full task set (Step 1) and period-filtered time entries (Step 2).
 foreach ($gid in @($allTasks.Keys)) {
     $t = $allTasks[$gid]
-    if ($EXCLUDED_ASSIGNEES -contains $t.assignee) { continue }
     if (-not ($taskMinutes.ContainsKey($gid) -and $taskMinutes[$gid] -gt 0)) { continue }
+    # same rule as the rest of the report: only non-excluded loggers' minutes count
+    $ph = Get-ArtPersonHours @{ by_logger = $taskByLogger[$gid] } $EXCLUDED_ASSIGNEES
+    $cMin = 0.0
+    foreach ($v in $ph.Values) { $cMin += $v * 60 }
+    if ($cMin -le 0) { continue }
     $homeGid = $null
     foreach ($m in $t.memberships) {
         if ($rawProjStats.ContainsKey($m.gid)) { $homeGid = $m.gid; break }
     }
     if (-not $homeGid) { continue }
     $rawProjStats[$homeGid].total++
-    $rawProjStats[$homeGid].hoursMin += $taskMinutes[$gid]
-    $logger = if ($taskLoggers.ContainsKey($gid)) { $taskLoggers[$gid] } else { "" }
+    $rawProjStats[$homeGid].hoursMin += $cMin
+    $logger = (@($ph.Keys) | Sort-Object) -join ', '
     $isSub  = [bool]$t.isSub
-    [void]$rawProjStats[$homeGid].tasks.Add(@{ name = $t.name; url = $t.permalink_url; hours = [math]::Round($taskMinutes[$gid] / 60.0, 2); logger = $logger; isSub = $isSub })
+    [void]$rawProjStats[$homeGid].tasks.Add(@{ name = $t.name; url = $t.permalink_url; hours = [math]::Round($cMin / 60.0, 2); logger = $logger; isSub = $isSub })
 }
 
 # the portfolio projects outside the main pipeline (defensive fallback - currently always empty
@@ -504,16 +519,27 @@ $dataObj = $rawJson | ConvertFrom-Json
 $tasks2  = @{}
 foreach ($prop in $dataObj.PSObject.Properties) {
     $t = $prop.Value
-    if ($EXCLUDED_ASSIGNEES -contains [string]$t.assignee) { continue }
+    $isSB = if ($t.PSObject.Properties['is_status_based']) { [bool]$t.is_status_based } else { $false }
+    if ($isSB) {
+        # 0 h, no loggers - shown by its assignee in the project table only
+        if ($EXCLUDED_ASSIGNEES -contains [string]$t.assignee) { continue }
+        $people = @{}; $hrs = 0.0
+    } else {
+        $people = Get-ArtPersonHours $t $EXCLUDED_ASSIGNEES
+        $hrs = 0.0
+        foreach ($v in $people.Values) { $hrs += $v }
+        if ($hrs -le 0) { continue }   # every minute of it was logged by excluded people
+    }
     $tasks2[$prop.Name] = @{
         name               = [string]$t.name
         assignee           = [string]$t.assignee
+        people             = $people   # @{ logger = hours }, excluded loggers already dropped
         permalink_url      = [string]$t.permalink_url
         art_direction      = [string]$t.art_direction
         attributed_project = [string]$t.attributed_project
         external           = [bool]$t.external
-        hours              = [double]$t.hours
-        is_status_based    = if ($t.PSObject.Properties['is_status_based']) { [bool]$t.is_status_based } else { $false }
+        hours              = $hrs
+        is_status_based    = $isSB
         status_name        = if ($t.PSObject.Properties['status_name']) { [string]$t.status_name } else { "" }
     }
 }
@@ -608,22 +634,27 @@ foreach ($gid in $tasks2.Keys) {
     $t    = $tasks2[$gid]
     $proj = Clean-Project $t.attributed_project
     $dir  = $t.art_direction
-    $who  = $t.assignee
+    # who did the work: the loggers (biggest share first); a 0 h status-based task has none - its assignee
+    $shown = if ($t.is_status_based) { $t.assignee } else { (@($t.people.GetEnumerator() | Sort-Object { $_.Value } -Descending | ForEach-Object { $_.Key })) -join ', ' }
     if (-not $t.external) {
         if (-not $byProject.ContainsKey($proj)) {
             $byProject[$proj] = @{ tasks=[System.Collections.Generic.List[object]]::new(); hours=0.0; dirs=@{} }
         }
-        $byProject[$proj].tasks.Add(@{gid=$gid;name=$t.name;assignee=$t.assignee;url=$t.permalink_url;dir=$dir;hours=$t.hours;is_status_based=$t.is_status_based;status_name=$t.status_name})
+        $byProject[$proj].tasks.Add(@{gid=$gid;name=$t.name;assignee=$shown;url=$t.permalink_url;dir=$dir;hours=$t.hours;is_status_based=$t.is_status_based;status_name=$t.status_name})
         $byProject[$proj].hours += $t.hours
         $byProject[$proj].dirs[$dir] = 1
         if (-not $byDirection.ContainsKey($dir)) { $byDirection[$dir] = 0.0 }
         $byDirection[$dir] += $t.hours
     }
-    if (-not $byAssignee.ContainsKey($who)) {
-        $byAssignee[$who] = @{ tasks=[System.Collections.Generic.List[object]]::new(); hours=0.0 }
+    # per person: each logger gets the task with their own share of its hours
+    $shares = if ($t.is_status_based) { @{ $t.assignee = 0.0 } } else { $t.people }
+    foreach ($who in @($shares.Keys)) {
+        if (-not $byAssignee.ContainsKey($who)) {
+            $byAssignee[$who] = @{ tasks=[System.Collections.Generic.List[object]]::new(); hours=0.0 }
+        }
+        $byAssignee[$who].tasks.Add(@{gid=$gid;name=$t.name;url=$t.permalink_url;dir=$dir;hours=[double]$shares[$who];proj=$proj;external=$t.external;is_status_based=$t.is_status_based;status_name=$t.status_name})
+        $byAssignee[$who].hours += [double]$shares[$who]
     }
-    $byAssignee[$who].tasks.Add(@{gid=$gid;name=$t.name;url=$t.permalink_url;dir=$dir;hours=$t.hours;proj=$proj;external=$t.external;is_status_based=$t.is_status_based;status_name=$t.status_name})
-    $byAssignee[$who].hours += $t.hours
 }
 
 $totalH    = 0.0
@@ -956,15 +987,13 @@ while ($md -le $curPeriodDate) {
         $cnt = 0
         foreach ($mprop in $mdata.PSObject.Properties) {
             $tv = $mprop.Value
-            if ($EXCLUDED_ASSIGNEES -contains [string]$tv.assignee) { continue }
             $isSBv = if ($tv.PSObject.Properties['is_status_based']) { [bool]$tv.is_status_based } else { $false }
-            if (-not [bool]$tv.external -and -not $isSBv) {
-                $cnt++
-                $whoV = [string]$tv.assignee
-                if ($whoV -ne 'Unassigned') {
-                    if (-not $byA.ContainsKey($whoV)) { $byA[$whoV] = 0 }
-                    $byA[$whoV]++
-                }
+            if ([bool]$tv.external -or $isSBv) { continue }
+            $phV = Get-ArtPersonHours $tv $EXCLUDED_ASSIGNEES   # same rule as the current month
+            if ($phV.Count -eq 0) { continue }
+            $cnt++
+            foreach ($whoV in @($phV.Keys)) {
+                if ($whoV -ne 'Unassigned') { $byA[$whoV] = [int]$byA[$whoV] + 1 }
             }
         }
         $monthlyHistory.Add(@{ Label = $ruMonths[$md.Month-1]; Total = $cnt; ByAssignee = $byA })
@@ -1005,25 +1034,30 @@ if ($prevData2 -and $prevPeriodLbl) {
     # only this comparison table + its sparkline are realigned here.
     $prevPP = @{}
     foreach ($prop0 in $prevData2.PSObject.Properties) {
-        $t0 = $prop0.Value; $who0 = [string]$t0.assignee
-        if ($who0 -eq 'Unassigned' -or $EXCLUDED_ASSIGNEES -contains $who0) { continue }
+        $t0 = $prop0.Value
         $isSBv0 = if ($t0.PSObject.Properties['is_status_based']) { [bool]$t0.is_status_based } else { $false }
         if ([bool]$t0.external -or $isSBv0) { continue }
-        if (-not $prevPP[$who0]) { $prevPP[$who0] = @{tasks=0;hours=0.0} }
-        $prevPP[$who0].tasks++
-        $prevPP[$who0].hours += [double]$t0.hours
+        $ph0 = Get-ArtPersonHours $t0 $EXCLUDED_ASSIGNEES
+        foreach ($who0 in @($ph0.Keys)) {
+            if ($who0 -eq 'Unassigned') { continue }
+            if (-not $prevPP[$who0]) { $prevPP[$who0] = @{tasks=0;hours=0.0} }
+            $prevPP[$who0].tasks++
+            $prevPP[$who0].hours += [double]$ph0[$who0]
+        }
     }
 
     # Build per-person stats for current month - same "tracking only" scope as $prevPP above,
     # built from $tasks2 directly (not $byAssignee, which is unscoped) for the same reason.
     $currPP = @{}
     foreach ($gid0 in $tasks2.Keys) {
-        $t0 = $tasks2[$gid0]; $who0 = [string]$t0.assignee
-        if ($who0 -eq 'Unassigned' -or $EXCLUDED_ASSIGNEES -contains $who0) { continue }
+        $t0 = $tasks2[$gid0]
         if ([bool]$t0.external -or [bool]$t0.is_status_based) { continue }
-        if (-not $currPP.ContainsKey($who0)) { $currPP[$who0] = @{tasks=0;hours=0.0} }
-        $currPP[$who0].tasks++
-        $currPP[$who0].hours += [double]$t0.hours
+        foreach ($who0 in @($t0.people.Keys)) {   # excluded loggers already dropped when $tasks2 was built
+            if ($who0 -eq 'Unassigned') { continue }
+            if (-not $currPP.ContainsKey($who0)) { $currPP[$who0] = @{tasks=0;hours=0.0} }
+            $currPP[$who0].tasks++
+            $currPP[$who0].hours += [double]$t0.people[$who0]
+        }
     }
 
     $joined0 = @($currPP.Keys | Where-Object { -not $prevPP.ContainsKey($_) } | Sort-Object)

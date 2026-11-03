@@ -22,6 +22,23 @@ $r = Resolve-ArtExcludedAssignees @('Roman Merezhko') @('Ivan Symkanych', 'Anton
 Check "person in BOTH teams stays in and is reported as a conflict" (($r.Excluded -notcontains 'Anton Tuz') -and ($r.Conflicts -contains 'Anton Tuz'))
 # --- must BLOCK -------------------------------------------------------------
 Check "empty GameDev team throws (no silent report with developers)" (Throws { Resolve-ArtExcludedAssignees @('Roman Merezhko') @() @('Anton Tuz') })
+Check "Maryna Riabokon is in the base exclusion list" ($ART_BASE_EXCLUDED -contains 'Maryna Riabokon')
+
+# --- hours go to whoever LOGGED them (Get-ArtPersonHours) -------------------------------------------
+# Real October 2026 tasks: Maryna / Pavlo Gorpenko = assignees of CPP requests, the 8 h were logged by
+# artists Katerina Grimailo / Artem Surin.
+$ex = @('Roman Merezhko', 'Maryna Riabokon', 'Ivan Symkanych')
+function Same($a, [hashtable]$b) { ($a.Count -eq $b.Count) -and -not ($b.Keys | Where-Object { [math]::Abs([double]$a[$_] - $b[$_]) -gt 0.001 }) }
+# must COUNT for the logger
+Check "assignee Maryna, logged by Katerina -> 8 h to Katerina" (Same (Get-ArtPersonHours @{ assignee = 'Maryna Riabokon'; hours = 8; by_logger = @{ 'Katerina Grimailo' = 480 } } $ex) @{ 'Katerina Grimailo' = 8 })
+Check "assignee Pavlo (not excluded), logged by Artem -> 8 h to Artem, none to Pavlo" (Same (Get-ArtPersonHours @{ assignee = 'Pavlo Gorpenko'; hours = 8; by_logger = @{ 'Artem Surin' = 480 } } $ex) @{ 'Artem Surin' = 8 })
+Check "same task read back from time_data JSON (PSCustomObject)" (Same (Get-ArtPersonHours ('{"assignee":"Maryna Riabokon","hours":8,"by_logger":{"Katerina Grimailo":480}}' | ConvertFrom-Json) $ex) @{ 'Katerina Grimailo' = 8 })
+Check "old record without by_logger falls back to the assignee" (Same (Get-ArtPersonHours ('{"assignee":"Anton Tuz","hours":160}' | ConvertFrom-Json) $ex) @{ 'Anton Tuz' = 160 })
+# must DROP excluded loggers
+Check "Maryna's own entries dropped, the artist's kept" (Same (Get-ArtPersonHours @{ assignee = 'Maryna Riabokon'; hours = 9; by_logger = @{ 'Maryna Riabokon' = 60; 'Katerina Grimailo' = 480 } } $ex) @{ 'Katerina Grimailo' = 8 })
+Check "developer's own entries dropped (task counts for nobody)" ((Get-ArtPersonHours @{ assignee = 'Ivan Symkanych'; hours = 20; by_logger = @{ 'Ivan Symkanych' = 1200 } } $ex).Count -eq 0)
+Check "old record of an excluded assignee counts for nobody" ((Get-ArtPersonHours ('{"assignee":"Roman Merezhko","hours":5}' | ConvertFrom-Json) $ex).Count -eq 0)
+Check "status-based record (by_logger {} , 0 h) counts for nobody, no assignee fallback" ((Get-ArtPersonHours ('{"assignee":"Anton Tuz","hours":0,"by_logger":{}}' | ConvertFrom-Json) $ex).Count -eq 0)
 
 # --- live: the real teams ---------------------------------------------------
 if (-not $OfflineOnly) {
