@@ -126,8 +126,18 @@ $TARGET_STATUSES  = @{
     "1213634616829012" = "In test"
 }
 
-# Excluded from all report aggregations (PM oversight, not art production work) - Roman's request 04.08.2026
-$EXCLUDED_ASSIGNEES = @('Roman Merezhko')
+# Excluded from all report aggregations: Roman + live members of "GameDev - ALL Team" (rule and
+# reasons in art_exclusions.ps1). Every filter below reads $EXCLUDED_ASSIGNEES, previous months too.
+. "$BASE\art_exclusions.ps1"
+try {
+    $exclusion = Resolve-ArtExcludedAssignees $ART_BASE_EXCLUDED (Get-AsanaTeamMemberNames $GAMEDEV_TEAM_GID $headers) (Get-AsanaTeamMemberNames $ART_TEAM_GID $headers)
+} catch {
+    Write-Host "  ERROR resolving excluded assignees: $_"
+    throw   # never fall through to a report that silently includes developers
+}
+$EXCLUDED_ASSIGNEES = $exclusion.Excluded
+Write-Host "  Excluded: $($ART_BASE_EXCLUDED -join ', ') + $($exclusion.Developers.Count) members of GameDev - ALL Team"
+if ($exclusion.Conflicts.Count) { Write-Host "  WARNING: in both GameDev and Art Team, kept in the report: $($exclusion.Conflicts -join ', ')" }
 
 # ============================================================
 # STEP 1 - Collect tasks (+ all subtasks, any depth) from every ART-portfolio project
