@@ -629,9 +629,9 @@ function Build-TrendSvg([array]$points) {
     return ($svg -join '')
 }
 
-# A project with 0 h in the period (only 0 h status rows) is not shown - art_exclusions.ps1
-$zeroProjects = Remove-ZeroHourProjects $tasks2 { param($t) Clean-Project $t.attributed_project }
-Write-Host "  Left out: $($zeroProjects.Count) projects with 0 h in period (status rows only)"
+# Only rows with time logged in the period are shown (0 h status rows dropped) - art_exclusions.ps1
+$untracked = Remove-UntrackedRows $tasks2 { param($t) Clean-Project $t.attributed_project }
+Write-Host "  Left out: $($untracked.Rows) rows with 0 h in period, $($untracked.Projects.Count) projects left with none"
 
 # Aggregate
 $byProject   = @{}
@@ -802,7 +802,6 @@ $L = [System.Collections.Generic.List[string]]::new()
 [void]$L.Add('  <div class="stats">')
 [void]$L.Add('    <div class="stat"><div class="stat-val">' + $totalHInt + '</div><div class="stat-lbl">&#1063;&#1072;&#1089;&#1086;&#1074; (' + $Label + ')</div></div>')
 [void]$L.Add('    <div class="stat"><div class="stat-val">' + $totalT + '</div><div class="stat-lbl">&#1047;&#1072;&#1076;&#1072;&#1095; &#1089; &#1090;&#1088;&#1077;&#1082;&#1080;&#1085;&#1075;&#1086;&#1084;</div></div>')
-[void]$L.Add('    <div class="stat"><div class="stat-val">' + $totalSB + '</div><div class="stat-lbl">&#1042; &#1088;&#1072;&#1073;&#1086;&#1090;&#1077; (ART Ready/Test)</div></div>')
 [void]$L.Add('    <div class="stat"><div class="stat-val">' + $totalP + '</div><div class="stat-lbl">&#1055;&#1088;&#1086;&#1077;&#1082;&#1090;&#1086;&#1074;</div></div>')
 [void]$L.Add('    <div class="stat"><div class="stat-val">' + $totalD + '</div><div class="stat-lbl">&#1053;&#1072;&#1087;&#1088;&#1072;&#1074;&#1083;&#1077;&#1085;&#1080;&#1081; ART</div></div>')
 [void]$L.Add('  </div>')

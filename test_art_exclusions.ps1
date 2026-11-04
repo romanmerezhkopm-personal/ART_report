@@ -66,26 +66,30 @@ Check "excluded people and external tasks are not flagged (Roman, Alisa ext)" (@
 Check "an outsider's EXTERNAL entries alone do not flag them" (@(Find-ArtOutsideLoggers @(@{ assignee = 'Oksana Tsvyntarna'; external = $true; by_logger = @{ 'Denys Drahanov' = 180 } }) $art $exNoDrahanov).Count -eq 0)
 Check "once excluded, Drahanov is no longer flagged" (@(Find-ArtOutsideLoggers $oct $art $ART_BASE_EXCLUDED).Count -eq 0)
 
-# --- Remove-ZeroHourProjects: a project with only 0 h status rows is left out -------------------------
-# Real October 2026 rows (time_data_2026-10.json): Obby All Games = 12 ART Ready rows, 0 h; Build Car =
-# 27 tracked tasks + 11 ART Ready rows; Anna Hrabko's external task attributed to "No project".
+# --- Remove-UntrackedRows: only rows with time logged in the period are shown -------------------------
+# Real October 2026 rows (time_data_2026-10.json): OverSpace = Anton Tuz's Motion task 4 h + 4 ART Ready
+# rows 0 h (Kateryna Svyrydova's Screenshots Task, 2D ART pop-ups) - Roman's screenshot 04.11.2026;
+# Obby All Games = only ART Ready rows, 0 h; Anna Hrabko's external task attributed to "No project".
 function New-Rows { @{
+    'os1'   = @{ attributed_project = 'OverSpace'; hours = 4.0; is_status_based = $false; assignee = 'Anton Tuz'; external = $false }
+    'os2'   = @{ attributed_project = 'OverSpace'; hours = 0.0; is_status_based = $true;  assignee = 'Kateryna Svyrydova'; external = $false }
+    'os3'   = @{ attributed_project = 'OverSpace'; hours = 0.0; is_status_based = $true;  assignee = 'Viktoriia Bahlai'; external = $false }
     'obby1' = @{ attributed_project = 'Obby All Games'; hours = 0.0; is_status_based = $true; assignee = 'Valentina Romashchenko'; external = $false }
     'obby2' = @{ attributed_project = 'Obby All Games'; hours = 0.0; is_status_based = $true; assignee = 'Vadym Flinta'; external = $false }
-    'bc1'   = @{ attributed_project = 'Build Car'; hours = 3.0; is_status_based = $false; assignee = 'Igor Kuznetsov'; external = $false }
-    'bc2'   = @{ attributed_project = 'Build Car'; hours = 0.0; is_status_based = $true;  assignee = 'Anna Hrabko'; external = $false }
     'ext1'  = @{ attributed_project = 'Obby All Games'; hours = 4.0; is_status_based = $false; assignee = 'Anna Hrabko'; external = $true }
     'ext2'  = @{ attributed_project = 'No project'; hours = 4.0; is_status_based = $false; assignee = 'Anna Hrabko'; external = $true }
 } }
 $rows = New-Rows
-$gone = @(Remove-ZeroHourProjects $rows { param($t) $t.attributed_project })
+$res = Remove-UntrackedRows $rows { param($t) $t.attributed_project }
 # must LEAVE OUT
-Check "project with only 0 h status rows is left out (Obby All Games)" (($gone -join ',') -eq 'Obby All Games' -and -not $rows.ContainsKey('obby1') -and -not $rows.ContainsKey('obby2'))
+Check "0 h ART Ready rows inside a project with hours are dropped (OverSpace Screenshots Task, 2D pop-up)" (-not $rows.ContainsKey('os2') -and -not $rows.ContainsKey('os3'))
+Check "project made only of 0 h rows disappears and is reported (Obby All Games)" (-not $rows.ContainsKey('obby1') -and -not $rows.ContainsKey('obby2') -and (($res.Projects -join ',') -eq 'Obby All Games') -and $res.Rows -eq 4)
 # must KEEP
-Check "project with hours keeps its tracked task AND its ART Ready row (Build Car)" ($rows.ContainsKey('bc1') -and $rows.ContainsKey('bc2'))
+Check "row with logged hours stays (OverSpace, Anton Tuz 4 h); its project is not reported as gone" ($rows.ContainsKey('os1') -and $res.Projects -notcontains 'OverSpace')
 Check "external tasks untouched, even with a 0 h project's name; they do not rescue it" ($rows.ContainsKey('ext1') -and $rows.ContainsKey('ext2'))
-$rows = New-Rows; $rows.Remove('obby1'); $rows.Remove('obby2')
-Check "nothing to leave out -> nothing removed" ((@(Remove-ZeroHourProjects $rows { param($t) $t.attributed_project }).Count -eq 0) -and $rows.Count -eq 4)
+$rows = New-Rows; foreach ($k in 'os2', 'os3', 'obby1', 'obby2') { $rows.Remove($k) }
+$res = Remove-UntrackedRows $rows { param($t) $t.attributed_project }
+Check "nothing untracked -> nothing removed" ($res.Rows -eq 0 -and $res.Projects.Count -eq 0 -and $rows.Count -eq 3)
 
 # --- live: the real teams ---------------------------------------------------
 if (-not $OfflineOnly) {

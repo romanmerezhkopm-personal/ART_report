@@ -52,25 +52,23 @@ function Get-ArtPersonHours($Task, [string[]]$Excluded) {
     return $res
 }
 
-# Projects with 0 h in the period are left out of the report (Roman, 04.11.2026): such a project exists only
-# because of 0 h status rows - tasks picked by their CURRENT status (ART Ready / Ready for Test / In test),
-# whatever month their time was logged in (October 2026: 16 projects, 109 rows, e.g. Obby All Games).
-# Status rows inside projects WITH hours stay. External tasks are not in the project table - untouched.
+# The report shows only rows with time logged in the period (Roman, 04.11.2026). 0 h rows are tasks
+# picked by their CURRENT status (ART Ready / Ready for Test / In test), whatever month their work was
+# in - e.g. OverSpace "Screenshots Task" (ART Ready, 0 h in October). October 2026: 515 such rows; first
+# only the 16 projects made of them alone were dropped, then Roman asked to drop every such row. A project
+# left with no rows disappears with them. External tasks always have hours (Step 2.5) - untouched.
 # $Tasks: gid -> task (hours already without excluded people); $KeyOf: task -> project key as the table
-# groups it. Removes in place, returns the left-out project keys.
-function Remove-ZeroHourProjects([hashtable]$Tasks, [scriptblock]$KeyOf) {
-    $projHours = @{}
-    foreach ($t in $Tasks.Values) {
-        if ($t.external) { continue }
-        $k = & $KeyOf $t
-        $projHours[$k] = [double]$projHours[$k] + [double]$t.hours
-    }
-    $zero = @($projHours.Keys | Where-Object { $projHours[$_] -le 0 } | Sort-Object)
+# groups it. Removes in place; returns @{ Rows = removed count; Projects = project keys left with nothing }.
+function Remove-UntrackedRows([hashtable]$Tasks, [scriptblock]$KeyOf) {
+    $before = @{}; $after = @{}
+    foreach ($t in $Tasks.Values) { if (-not $t.external) { $before[(& $KeyOf $t)] = $true } }
+    $rows = 0
     foreach ($gid in @($Tasks.Keys)) {
         $t = $Tasks[$gid]
-        if (-not $t.external -and $zero -contains (& $KeyOf $t)) { $Tasks.Remove($gid) }
+        if (-not $t.external -and [double]$t.hours -le 0) { $Tasks.Remove($gid); $rows++ }
     }
-    return $zero
+    foreach ($t in $Tasks.Values) { if (-not $t.external) { $after[(& $KeyOf $t)] = $true } }
+    [pscustomobject]@{ Rows = $rows; Projects = @($before.Keys | Where-Object { -not $after.ContainsKey($_) } | Sort-Object) }
 }
 
 # Counted people outside Art Team whose hours are ALL on other people's tasks (or unassigned ones) - how a
