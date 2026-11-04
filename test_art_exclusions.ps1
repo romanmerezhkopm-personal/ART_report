@@ -91,6 +91,30 @@ $rows = New-Rows; foreach ($k in 'os2', 'os3', 'obby1', 'obby2') { $rows.Remove(
 $res = Remove-UntrackedRows $rows { param($t) $t.attributed_project }
 Check "nothing untracked -> nothing removed" ($res.Rows -eq 0 -and $res.Projects.Count -eq 0 -and $rows.Count -eq 3)
 
+# --- Get-ArtExternalSearchPeople: whose tasks outside the portfolio are searched -----------------------
+# Real October 2026: Stas Batov / Ilnaz Khadiev = Motion Design artists, not in Art Team, own Motion tasks
+# with time (their vacations were missed); Drahanov = 3 h on Smyslovskyi's task only; Ivan Symkanych =
+# GameDev, own [DEV] playable task. User gids below are placeholders - the rule maps names, not gid format.
+$pt = @{
+    't1' = @{ assignee = 'Stas Batov';            by_logger = @{ 'Stas Batov' = 720 } }
+    't2' = @{ assignee = 'Ilnaz Khadiev';         by_logger = @{ 'Ilnaz Khadiev' = 1440 } }
+    't3' = @{ assignee = 'Oleksandr Smyslovskyi'; by_logger = @{ 'Denys Drahanov' = 180 } }
+    't4' = @{ assignee = 'Ivan Symkanych';        by_logger = @{ 'Ivan Symkanych' = 1200 } }
+    't5' = @{ assignee = 'Anton Tuz';             by_logger = @{ 'Anton Tuz' = 240 } }
+    't6' = @{ assignee = 'Unassigned';            by_logger = @{ '(unknown)' = 60 } }
+}
+$lg  = @{ 'Stas Batov' = 'g-stas'; 'Ilnaz Khadiev' = 'g-ilnaz'; 'Denys Drahanov' = 'g-drahanov'; 'Ivan Symkanych' = 'g-ivan' }
+$at  = @{ 'g-katerina' = 'Katerina Grimailo'; 'g-roman' = 'Roman Merezhko' }
+$exS = @('Roman Merezhko', 'Ivan Symkanych')
+$sp  = Get-ArtExternalSearchPeople $pt $lg $at $exS
+# must SEARCH
+Check "Motion Design artists with time on their own tasks are searched (Stas Batov, Ilnaz Khadiev)" ($sp['g-stas'] -eq 'Stas Batov' -and $sp['g-ilnaz'] -eq 'Ilnaz Khadiev')
+Check "Art Team member is searched even with no portfolio hours (Katerina)" ($sp['g-katerina'] -eq 'Katerina Grimailo')
+# must NOT search
+Check "logger with hours only on someone else's task is not searched (Drahanov pattern)" (-not $sp.ContainsKey('g-drahanov'))
+Check "excluded people are not searched, Art Team or not (Roman, developer Ivan Symkanych)" (-not $sp.ContainsKey('g-roman') -and -not $sp.ContainsKey('g-ivan'))
+Check "logger without a known user gid is skipped, no crash (Anton Tuz here, '(unknown)')" (@($sp.Values | Where-Object { 'Anton Tuz', '(unknown)' -contains $_ }).Count -eq 0 -and $sp.Count -eq 3)
+
 # --- live: the real teams ---------------------------------------------------
 if (-not $OfflineOnly) {
     $h = @{ Authorization = "Bearer " + (Get-Content "$PSScriptRoot\asana_pat.txt" -Raw).Trim() }

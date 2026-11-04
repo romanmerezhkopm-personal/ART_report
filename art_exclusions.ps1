@@ -52,6 +52,30 @@ function Get-ArtPersonHours($Task, [string[]]$Excluded) {
     return $res
 }
 
+# Whose tasks OUTSIDE the portfolio are searched (Step 2.5): Art Team + everyone who logged time in the
+# portfolio this period on their OWN tasks (Roman, 04.11.2026). Motion Design artists are not in Art Team,
+# so their vacations / days off ("CAS.AI - Otpuska, likarniani") were never found - October 2026: 216 h
+# (Ilnaz Khadiev 80, Vitalii Trenbach 80, Stas Batov 40, Dmytro Zasulskyi 16). Not searched: excluded
+# people; someone whose portfolio hours are all on other people's tasks (Find-ArtOutsideLoggers flags
+# them - Roman decides first); a logger without a known user gid.
+# $Tasks: gid -> @{ assignee; by_logger = @{ name = minutes } } (in-portfolio tasks with time);
+# $LoggerGids: name -> user gid; $ArtTeam: user gid -> name. Returns user gid -> name.
+function Get-ArtExternalSearchPeople($Tasks, [hashtable]$LoggerGids, [hashtable]$ArtTeam, [string[]]$Excluded) {
+    $res = @{}
+    foreach ($g in $ArtTeam.Keys) { if ($Excluded -notcontains $ArtTeam[$g]) { $res[$g] = $ArtTeam[$g] } }
+    $own = @{}
+    foreach ($t in $Tasks.Values) {
+        $bl = $t.by_logger
+        if (-not $bl) { continue }
+        foreach ($n in @($bl.Keys)) { if ([int]$bl[$n] -gt 0 -and [string]$t.assignee -eq $n) { $own[$n] = $true } }
+    }
+    foreach ($n in $own.Keys) {
+        if ($Excluded -contains $n -or -not $LoggerGids.ContainsKey($n)) { continue }
+        $res[[string]$LoggerGids[$n]] = $n
+    }
+    return $res
+}
+
 # The report shows only rows with time logged in the period (Roman, 04.11.2026). 0 h rows are tasks
 # picked by their CURRENT status (ART Ready / Ready for Test / In test), whatever month their work was
 # in - e.g. OverSpace "Screenshots Task" (ART Ready, 0 h in October). October 2026: 515 such rows; first

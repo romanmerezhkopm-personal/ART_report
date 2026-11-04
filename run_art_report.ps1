@@ -234,11 +234,12 @@ Write-Host "Total unique tasks: $($allTasks.Count)"
 Write-Host "`n[2/3] Fetching time entries for $StartDisp - $EndDisp ..."
 $taskMinutes  = @{}
 $taskByLogger = @{}   # gid -> @{ logger name = minutes in period } - hours belong to who logged them (art_exclusions.ps1)
+$loggerGids   = @{}   # logger name -> user gid (Step 2.5 searches their tasks outside the portfolio)
 $i = 0
 foreach ($gid in @($allTasks.Keys)) {
     $i++
     if ($i % 50 -eq 0) { Write-Host "  [$i / $($allTasks.Count)] $(Get-Date -Format 'HH:mm:ss')" }
-        $url  = "$apiBase/tasks/$gid/time_tracking_entries?opt_fields=duration_minutes,entered_on,created_by.name&limit=100"
+        $url  = "$apiBase/tasks/$gid/time_tracking_entries?opt_fields=duration_minutes,entered_on,created_by.name,created_by.gid&limit=100"
         $resp = Invoke-AsanaGet $url -AllowNotFound
         if ($null -eq $resp) { $script:goneTasks++; continue }
         $tot  = 0
@@ -248,6 +249,7 @@ foreach ($gid in @($allTasks.Keys)) {
                 $tot += [int]$e.duration_minutes
                 $who  = if ($e.created_by -and $e.created_by.name) { [string]$e.created_by.name } else { '(unknown)' }
                 $bl[$who] = [int]$bl[$who] + [int]$e.duration_minutes
+                if ($e.created_by -and $e.created_by.gid) { $loggerGids[$who] = [string]$e.created_by.gid }
             }
         }
         if ($tot -gt 0) { $taskMinutes[$gid] = $tot; $taskByLogger[$gid] = $bl }
@@ -286,6 +288,14 @@ foreach ($exGid in @($teamMembers.Keys)) {
     if ($EXCLUDED_ASSIGNEES -contains $teamMembers[$exGid]) { $teamMembers.Remove($exGid) }
 }
 Write-Host "  Team members: $($teamMembers.Count)"
+$artTeamNames = @($teamMembers.Values)   # Art Team only - Find-ArtOutsideLoggers needs exactly this list
+
+# Searched outside the portfolio: Art Team + portfolio loggers on their own tasks (art_exclusions.ps1)
+$portfolioTasks = @{}
+foreach ($g in $taskByLogger.Keys) { $portfolioTasks[$g] = @{ assignee = $allTasks[$g].assignee; by_logger = $taskByLogger[$g] } }
+$searchPeople = Get-ArtExternalSearchPeople $portfolioTasks $loggerGids $teamMembers $EXCLUDED_ASSIGNEES
+$extraPeople  = @($searchPeople.Values | Where-Object { $artTeamNames -notcontains $_ } | Sort-Object)
+Write-Host "  + $($extraPeople.Count) portfolio loggers outside Art Team: $($extraPeople -join ', ')"
 
 # Asana's tasks/search endpoint never paginates past 100 results (confirmed 14.08.2026 while
 # building /3month_ART_report: a bare 100-limit query silently truncates for high-volume assignees,
@@ -315,7 +325,7 @@ function Get-CandidateTasksAdaptive([string]$uGid, [string]$rangeStart, [string]
 
 $candidates = @{}
 $searchEndExclusive = (Get-Date).AddDays(1).ToString('yyyy-MM-dd')
-foreach ($uGid in $teamMembers.Keys) {
+foreach ($uGid in $searchPeople.Keys) {
     $rawTasks = @{}
     Get-CandidateTasksAdaptive $uGid $Start $searchEndExclusive $rawTasks 0
     foreach ($task in $rawTasks.Values) {
@@ -330,7 +340,7 @@ foreach ($uGid in $teamMembers.Keys) {
         }
         $candidates[$task.gid] = @{
             name          = $task.name
-            assignee      = if ($task.PSObject.Properties['assignee'] -and $task.assignee -and $task.assignee.name) { $task.assignee.name } else { $teamMembers[$uGid] }
+            assignee      = if ($task.PSObject.Properties['assignee'] -and $task.assignee -and $task.assignee.name) { $task.assignee.name } else { $searchPeople[$uGid] }
             permalink_url = if ($task.PSObject.Properties['permalink_url']) { $task.permalink_url } else { "" }
             memberships   = $mems
         }
@@ -338,9 +348,9 @@ foreach ($uGid in $teamMembers.Keys) {
 }
 Write-Host "  External candidate tasks: $($candidates.Count)"
 
-# Outside the portfolio only Art Team members' OWN entries count (hours belong to who logged them -
+# Outside the portfolio only the searched people's OWN entries count (hours belong to who logged them -
 # a developer's or PO's time on an artist's game task is not ART work).
-$artTeamNames = @($teamMembers.Values)
+$searchNames = @($searchPeople.Values)
 $j = 0
 foreach ($gid in @($candidates.Keys)) {
     $j++
@@ -352,7 +362,7 @@ foreach ($gid in @($candidates.Keys)) {
         $bl   = @{}
         foreach ($e in $resp.data) {
             if ($e.entered_on -and $e.entered_on -ge $Start -and $e.entered_on -le $End -and
-                $e.created_by -and $artTeamNames -contains [string]$e.created_by.name) {
+                $e.created_by -and $searchNames -contains [string]$e.created_by.name) {
                 $tot += [int]$e.duration_minutes
                 $bl[[string]$e.created_by.name] = [int]$bl[[string]$e.created_by.name] + [int]$e.duration_minutes
             }
