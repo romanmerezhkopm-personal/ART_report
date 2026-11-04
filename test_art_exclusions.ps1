@@ -23,6 +23,7 @@ Check "person in BOTH teams stays in and is reported as a conflict" (($r.Exclude
 # --- must BLOCK -------------------------------------------------------------
 Check "empty GameDev team throws (no silent report with developers)" (Throws { Resolve-ArtExcludedAssignees @('Roman Merezhko') @() @('Anton Tuz') })
 Check "Maryna Riabokon is in the base exclusion list" ($ART_BASE_EXCLUDED -contains 'Maryna Riabokon')
+Check "Denys Drahanov is in the base exclusion list" ($ART_BASE_EXCLUDED -contains 'Denys Drahanov')
 
 # --- hours go to whoever LOGGED them (Get-ArtPersonHours) -------------------------------------------
 # Real October 2026 tasks: Maryna / Pavlo Gorpenko = assignees of CPP requests, the 8 h were logged by
@@ -39,6 +40,52 @@ Check "Maryna's own entries dropped, the artist's kept" (Same (Get-ArtPersonHour
 Check "developer's own entries dropped (task counts for nobody)" ((Get-ArtPersonHours @{ assignee = 'Ivan Symkanych'; hours = 20; by_logger = @{ 'Ivan Symkanych' = 1200 } } $ex).Count -eq 0)
 Check "old record of an excluded assignee counts for nobody" ((Get-ArtPersonHours ('{"assignee":"Roman Merezhko","hours":5}' | ConvertFrom-Json) $ex).Count -eq 0)
 Check "status-based record (by_logger {} , 0 h) counts for nobody, no assignee fallback" ((Get-ArtPersonHours ('{"assignee":"Anton Tuz","hours":0,"by_logger":{}}' | ConvertFrom-Json) $ex).Count -eq 0)
+
+# --- Find-ArtOutsideLoggers: a non-artist brought in by the logger rule ----------------------------
+# Real October 2026: Drahanov logged 3 h on Oleksandr Smyslovskyi's Motion Design task, none on his own.
+# Polina Dimitrova (Motion Design, outside Art Team) logged 152 h on her own tasks + 16 h on Oksana's.
+$art = @('Katerina Grimailo', 'Oleksandr Smyslovskyi')
+$exNoDrahanov = @('Roman Merezhko', 'Maryna Riabokon')
+# Records as in time_data_2026-10.json (task 1219252452211800 for Drahanov); the Roman one is constructed:
+# an excluded person on someone else's task.
+$oct = @(
+    @{ assignee = 'Oleksandr Smyslovskyi'; by_logger = @{ 'Denys Drahanov' = 180 } },
+    @{ assignee = 'Polina Dimitrova';      by_logger = @{ 'Polina Dimitrova' = 9120 } },
+    @{ assignee = 'Oksana Tsvyntarna';     by_logger = @{ 'Polina Dimitrova' = 960 } },
+    @{ assignee = 'Maryna Riabokon';       by_logger = @{ 'Katerina Grimailo' = 480 } },
+    @{ assignee = 'Oksana Tsvyntarna';     by_logger = @{ 'Roman Merezhko' = 60 } },
+    @{ assignee = 'Alisa Nadvorna'; external = $true; by_logger = @{ 'Alisa Nadvorna' = 480 } }
+)
+$found = @(Find-ArtOutsideLoggers $oct $art $exNoDrahanov)
+# must FLAG
+Check "outsider with hours only on others' tasks is flagged (Drahanov 3 h)" (($found.Count -eq 1) -and ($found[0].Name -eq 'Denys Drahanov') -and ($found[0].Hours -eq 3))
+# must PASS
+Check "outsider who also logs on own tasks is not flagged (Polina)" (@($found | Where-Object { $_.Name -eq 'Polina Dimitrova' }).Count -eq 0)
+Check "Art Team member logging on someone else's task is not flagged (Katerina)" (@($found | Where-Object { $_.Name -eq 'Katerina Grimailo' }).Count -eq 0)
+Check "excluded people and external tasks are not flagged (Roman, Alisa ext)" (@($found | Where-Object { 'Roman Merezhko', 'Alisa Nadvorna' -contains $_.Name }).Count -eq 0)
+Check "an outsider's EXTERNAL entries alone do not flag them" (@(Find-ArtOutsideLoggers @(@{ assignee = 'Oksana Tsvyntarna'; external = $true; by_logger = @{ 'Denys Drahanov' = 180 } }) $art $exNoDrahanov).Count -eq 0)
+Check "once excluded, Drahanov is no longer flagged" (@(Find-ArtOutsideLoggers $oct $art $ART_BASE_EXCLUDED).Count -eq 0)
+
+# --- Remove-ZeroHourProjects: a project with only 0 h status rows is left out -------------------------
+# Real October 2026 rows (time_data_2026-10.json): Obby All Games = 12 ART Ready rows, 0 h; Build Car =
+# 27 tracked tasks + 11 ART Ready rows; Anna Hrabko's external task attributed to "No project".
+function New-Rows { @{
+    'obby1' = @{ attributed_project = 'Obby All Games'; hours = 0.0; is_status_based = $true; assignee = 'Valentina Romashchenko'; external = $false }
+    'obby2' = @{ attributed_project = 'Obby All Games'; hours = 0.0; is_status_based = $true; assignee = 'Vadym Flinta'; external = $false }
+    'bc1'   = @{ attributed_project = 'Build Car'; hours = 3.0; is_status_based = $false; assignee = 'Igor Kuznetsov'; external = $false }
+    'bc2'   = @{ attributed_project = 'Build Car'; hours = 0.0; is_status_based = $true;  assignee = 'Anna Hrabko'; external = $false }
+    'ext1'  = @{ attributed_project = 'Obby All Games'; hours = 4.0; is_status_based = $false; assignee = 'Anna Hrabko'; external = $true }
+    'ext2'  = @{ attributed_project = 'No project'; hours = 4.0; is_status_based = $false; assignee = 'Anna Hrabko'; external = $true }
+} }
+$rows = New-Rows
+$gone = @(Remove-ZeroHourProjects $rows { param($t) $t.attributed_project })
+# must LEAVE OUT
+Check "project with only 0 h status rows is left out (Obby All Games)" (($gone -join ',') -eq 'Obby All Games' -and -not $rows.ContainsKey('obby1') -and -not $rows.ContainsKey('obby2'))
+# must KEEP
+Check "project with hours keeps its tracked task AND its ART Ready row (Build Car)" ($rows.ContainsKey('bc1') -and $rows.ContainsKey('bc2'))
+Check "external tasks untouched, even with a 0 h project's name; they do not rescue it" ($rows.ContainsKey('ext1') -and $rows.ContainsKey('ext2'))
+$rows = New-Rows; $rows.Remove('obby1'); $rows.Remove('obby2')
+Check "nothing to leave out -> nothing removed" ((@(Remove-ZeroHourProjects $rows { param($t) $t.attributed_project }).Count -eq 0) -and $rows.Count -eq 4)
 
 # --- live: the real teams ---------------------------------------------------
 if (-not $OfflineOnly) {

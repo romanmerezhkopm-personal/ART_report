@@ -30,6 +30,16 @@ $PAT     = (Get-Content "$BASE\asana_pat.txt" -Raw).Trim()
 $headers = @{ Authorization = "Bearer $PAT" }
 $apiBase = "https://app.asana.com/api/1.0"
 
+# Every Asana GET goes through the shared retry engine: a network drop is retried for ~2 min, then the
+# run ABORTS before writing JSON/HTML, so the previous report stays (04.11.2026: DNS errors swallowed by
+# empty catch blocks gave a "successful" run with 4360 h instead of ~6300 h). 404 = task deleted during
+# the run - counted in $script:goneTasks, not an error.
+. "D:\project\guardrails\asana_http.ps1"
+function Invoke-AsanaGet([string]$url, [switch]$AllowNotFound) {
+    Invoke-AsanaGetWithRetry -Url $url -RequestHeaders $headers -AllowNotFound:$AllowNotFound
+}
+$script:goneTasks = 0
+
 $ART_DIRECTION = @{
     "1213598068805254"="2D Art / UI"; "1213598068805258"="3D Art"
     "1213599181255288"="VFX";         "1213599181255292"="Animations"
@@ -73,7 +83,7 @@ function Get-PortfolioProjects([string]$pgid, [hashtable]$visited, [string]$path
     do {
         $u = "$apiBase/portfolios/$pgid/items?opt_fields=gid,name,resource_type,archived&limit=100"
         if ($offset) { $u += "&offset=$offset" }
-        $resp = Invoke-RestMethod $u -Headers $headers
+        $resp = Invoke-AsanaGet $u
         foreach ($item in $resp.data) {
             switch ($item.resource_type) {
                 "project"   { if (-not [bool]$item.archived) { $portfolioItems[$item.gid] = $item.name } }
@@ -153,8 +163,8 @@ $allTasks = @{}
 # employees) treat subtasks exactly like any other task, under the same conditions everywhere.
 # Roman's request 04.08.2026: no more per-section inconsistency in what counts as "a task".
 function Add-SubtasksRecursive([string]$parentGid, [array]$inheritedMems) {
-    try {
-        $resp = Invoke-RestMethod "$apiBase/tasks/$parentGid/subtasks?opt_fields=gid,name,assignee.name,permalink_url,custom_fields.gid,custom_fields.enum_value.gid&limit=100" -Headers $headers
+        $resp = Invoke-AsanaGet "$apiBase/tasks/$parentGid/subtasks?opt_fields=gid,name,assignee.name,permalink_url,custom_fields.gid,custom_fields.enum_value.gid&limit=100" -AllowNotFound
+        if ($null -eq $resp) { $script:goneTasks++; return }
         foreach ($st in $resp.data) {
             if ($allTasks.ContainsKey($st.gid)) { continue }
             $sStatusGid = ""
@@ -174,7 +184,6 @@ function Add-SubtasksRecursive([string]$parentGid, [array]$inheritedMems) {
             }
             Add-SubtasksRecursive $st.gid $inheritedMems
         }
-    } catch {}
 }
 
 foreach ($projGid in $ART_GIDs) {
@@ -183,8 +192,7 @@ foreach ($projGid in $ART_GIDs) {
     do {
         $url = "$apiBase/projects/$projGid/tasks?opt_fields=gid,name,assignee.name,memberships.project.gid,memberships.project.name,permalink_url,custom_fields.gid,custom_fields.enum_value.gid,completed,completed_at&limit=100"
         if ($offset) { $url += "&offset=$offset" }
-        try {
-            $resp = Invoke-RestMethod $url -Headers $headers
+            $resp = Invoke-AsanaGet $url   # a failed page throws - never a project with half its tasks
             foreach ($task in $resp.data) {
                 if (-not $allTasks.ContainsKey($task.gid)) {
                     $mems = @()
@@ -215,10 +223,6 @@ foreach ($projGid in $ART_GIDs) {
                 }
             }
             $offset = if ($resp.next_page -and $resp.next_page.offset) { $resp.next_page.offset } else { $null }
-        } catch {
-            Write-Host "  ERROR project $projGid : $_"
-            $offset = $null
-        }
     } while ($offset)
     Write-Host "  $($ART_DIRECTION[$projGid]): +$newCount  (total: $($allTasks.Count))"
 }
@@ -233,10 +237,10 @@ $taskByLogger = @{}   # gid -> @{ logger name = minutes in period } - hours belo
 $i = 0
 foreach ($gid in @($allTasks.Keys)) {
     $i++
-    if ($i % 50 -eq 0) { Write-Host "  [$i / $($allTasks.Count)]..." }
-    try {
+    if ($i % 50 -eq 0) { Write-Host "  [$i / $($allTasks.Count)] $(Get-Date -Format 'HH:mm:ss')" }
         $url  = "$apiBase/tasks/$gid/time_tracking_entries?opt_fields=duration_minutes,entered_on,created_by.name&limit=100"
-        $resp = Invoke-RestMethod $url -Headers $headers
+        $resp = Invoke-AsanaGet $url -AllowNotFound
+        if ($null -eq $resp) { $script:goneTasks++; continue }
         $tot  = 0
         $bl   = @{}
         foreach ($e in $resp.data) {
@@ -247,9 +251,9 @@ foreach ($gid in @($allTasks.Keys)) {
             }
         }
         if ($tot -gt 0) { $taskMinutes[$gid] = $tot; $taskByLogger[$gid] = $bl }
-    } catch {}
 }
 Write-Host "Tasks with tracked time in period: $($taskMinutes.Count)"
+Write-Host "Tasks deleted during the run (404, skipped): $($script:goneTasks)"
 
 # ============================================================
 # STEP 2.3 - Add tasks with target statuses (ART Ready / Ready for Test / In test)
@@ -275,10 +279,9 @@ $WS_GID   = "1210983682540893"
 $externalGids = @{}
 $teamMembers  = @{}
 Write-Host "`n[2.5] Fetching Art Team members and external tasks..."
-try {
-    $resp = Invoke-RestMethod "$apiBase/teams/$TEAM_GID/users?opt_fields=name&limit=100" -Headers $headers
-    foreach ($u in $resp.data) { $teamMembers[$u.gid] = $u.name }
-} catch { Write-Host "  ERROR fetching team members: $_" }
+$resp = Invoke-AsanaGet "$apiBase/teams/$TEAM_GID/users?opt_fields=name&limit=100"
+foreach ($u in $resp.data) { $teamMembers[$u.gid] = $u.name }
+if ($teamMembers.Count -eq 0) { throw "Art Team returned 0 members - refusing to build the report without external tasks" }
 foreach ($exGid in @($teamMembers.Keys)) {
     if ($EXCLUDED_ASSIGNEES -contains $teamMembers[$exGid]) { $teamMembers.Remove($exGid) }
 }
@@ -291,7 +294,7 @@ Write-Host "  Team members: $($teamMembers.Count)"
 # granularity, logged as a WARNING - genuine 100+/day from one person is not expected in practice).
 function Get-CandidateTasksAdaptive([string]$uGid, [string]$rangeStart, [string]$rangeEndExclusive, [hashtable]$acc, [int]$depth) {
     $url = "$apiBase/workspaces/$WS_GID/tasks/search?assignee.any=$uGid&modified_on.after=$rangeStart&modified_on.before=$rangeEndExclusive&opt_fields=gid,name,assignee.name,memberships.project.gid,memberships.project.name,permalink_url&limit=100"
-    try { $resp = Invoke-RestMethod $url -Headers $headers } catch { Write-Host "  search failed for range $rangeStart..$rangeEndExclusive : $_"; return }
+    $resp = Invoke-AsanaGet $url   # a failed search throws - never an artist with half their external tasks
     $items = @($resp.data)
     if ($items.Count -eq 100 -and $depth -lt 12) {
         $sD = [datetime]::ParseExact($rangeStart,'yyyy-MM-dd',$null)
@@ -342,9 +345,9 @@ $j = 0
 foreach ($gid in @($candidates.Keys)) {
     $j++
     if ($j % 50 -eq 0) { Write-Host "  [$j / $($candidates.Count)]..." }
-    try {
         $url  = "$apiBase/tasks/$gid/time_tracking_entries?opt_fields=duration_minutes,entered_on,created_by.name&limit=100"
-        $resp = Invoke-RestMethod $url -Headers $headers
+        $resp = Invoke-AsanaGet $url -AllowNotFound
+        if ($null -eq $resp) { $script:goneTasks++; continue }
         $tot  = 0
         $bl   = @{}
         foreach ($e in $resp.data) {
@@ -360,7 +363,6 @@ foreach ($gid in @($candidates.Keys)) {
             $taskByLogger[$gid] = $bl
             $externalGids[$gid] = $true
         }
-    } catch {}
 }
 Write-Host "  External tasks with tracked time in period: $($externalGids.Count)"
 
@@ -403,6 +405,10 @@ foreach ($gid in $taskMinutes.Keys) {
 }
 $processed | ConvertTo-Json -Depth 10 | Out-File $jsonFile -Encoding utf8
 Write-Host "Saved: $jsonFile  ($($processed.Count) tasks)"
+$outsiders = Find-ArtOutsideLoggers @($processed.Values) $artTeamNames $EXCLUDED_ASSIGNEES
+if ($outsiders.Count) {
+    Write-Host "  WARNING: counted, outside Art Team, hours only on other people's tasks - artist? If not, add to `$ART_BASE_EXCLUDED: $(($outsiders | ForEach-Object { "$($_.Name) $($_.Hours) h" }) -join ', ')"
+}
 
 # ============================================================
 # STEP 3.7 - CAS (internal requests) vs game-project (ART backlog) breakdown
@@ -428,8 +434,7 @@ foreach ($projGid in $portfolioExtraGids) {
     do {
         $url = "$apiBase/projects/$projGid/tasks?opt_fields=gid,name,completed,completed_at,permalink_url&limit=100"
         if ($offset) { $url += "&offset=$offset" }
-        try {
-            $resp = Invoke-RestMethod $url -Headers $headers
+            $resp = Invoke-AsanaGet $url
             foreach ($task in $resp.data) {
                 $casExtraTasks[$task.gid] = @{
                     name          = $task.name
@@ -440,7 +445,6 @@ foreach ($projGid in $portfolioExtraGids) {
                 }
             }
             $offset = if ($resp.next_page -and $resp.next_page.offset) { $resp.next_page.offset } else { $null }
-        } catch { Write-Host "  ERROR portfolio project $projGid : $_"; $offset = $null }
     } while ($offset)
 }
 Write-Host "  Extra portfolio projects: $($portfolioExtraGids.Count) projects, $($casExtraTasks.Count) tasks"
@@ -448,9 +452,9 @@ Write-Host "  Extra portfolio projects: $($portfolioExtraGids.Count) projects, $
 $casExtraMinutes = @{}
 $casExtraLoggers = @{}
 foreach ($gid in @($casExtraTasks.Keys)) {
-    try {
         $url  = "$apiBase/tasks/$gid/time_tracking_entries?opt_fields=duration_minutes,entered_on,created_by.name&limit=100"
-        $resp = Invoke-RestMethod $url -Headers $headers
+        $resp = Invoke-AsanaGet $url -AllowNotFound
+        if ($null -eq $resp) { $script:goneTasks++; continue }
         $tot  = 0
         $loggers = [System.Collections.Generic.HashSet[string]]::new()
         foreach ($e in $resp.data) {
@@ -460,7 +464,6 @@ foreach ($gid in @($casExtraTasks.Keys)) {
             }
         }
         if ($tot -gt 0) { $casExtraMinutes[$gid] = $tot; $casExtraLoggers[$gid] = ($loggers -join ', ') }
-    } catch {}
 }
 
 $rawProjStats = @{}
@@ -625,6 +628,10 @@ function Build-TrendSvg([array]$points) {
     [void]$svg.Add('</svg>')
     return ($svg -join '')
 }
+
+# A project with 0 h in the period (only 0 h status rows) is not shown - art_exclusions.ps1
+$zeroProjects = Remove-ZeroHourProjects $tasks2 { param($t) Clean-Project $t.attributed_project }
+Write-Host "  Left out: $($zeroProjects.Count) projects with 0 h in period (status rows only)"
 
 # Aggregate
 $byProject   = @{}

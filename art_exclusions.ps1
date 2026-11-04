@@ -4,6 +4,8 @@
 # Excluded people (their own logged time is dropped everywhere, previous months included):
 #  - Roman Merezhko: PM oversight, not art production (Roman, 04.08.2026).
 #  - Maryna Riabokon: not ART (Roman, 03.11.2026).
+#  - Denys Drahanov: not an artist (Roman, 04.11.2026) - came in with the logger rule below: 3 h logged on
+#    an artist's task. Find-ArtOutsideLoggers flags the next such person on every run.
 #  - Members of Asana team "GameDev - ALL Team": developers, not ART (Roman, 03.11.2026). Read live on
 #    every run, so a developer added to the team later is excluded without editing this file.
 #  - A person in BOTH GameDev and Art Team stays IN the report and is printed as a conflict:
@@ -11,7 +13,7 @@
 #
 # Hours belong to whoever LOGGED them, not to the task's assignee (Roman, 03.11.2026): Maryna was the
 # assignee of a CPP request whose 8 h were logged by artist Katerina Grimailo - those 8 h are Katerina's.
-$ART_BASE_EXCLUDED = @('Roman Merezhko', 'Maryna Riabokon')
+$ART_BASE_EXCLUDED = @('Roman Merezhko', 'Maryna Riabokon', 'Denys Drahanov')
 $GAMEDEV_TEAM_GID  = "1213487151738856"
 $ART_TEAM_GID      = "1213453988877387"
 
@@ -48,4 +50,43 @@ function Get-ArtPersonHours($Task, [string[]]$Excluded) {
         if ($h -gt 0 -and $Excluded -notcontains $who) { $res[$who] = $h }
     }
     return $res
+}
+
+# Projects with 0 h in the period are left out of the report (Roman, 04.11.2026): such a project exists only
+# because of 0 h status rows - tasks picked by their CURRENT status (ART Ready / Ready for Test / In test),
+# whatever month their time was logged in (October 2026: 16 projects, 109 rows, e.g. Obby All Games).
+# Status rows inside projects WITH hours stay. External tasks are not in the project table - untouched.
+# $Tasks: gid -> task (hours already without excluded people); $KeyOf: task -> project key as the table
+# groups it. Removes in place, returns the left-out project keys.
+function Remove-ZeroHourProjects([hashtable]$Tasks, [scriptblock]$KeyOf) {
+    $projHours = @{}
+    foreach ($t in $Tasks.Values) {
+        if ($t.external) { continue }
+        $k = & $KeyOf $t
+        $projHours[$k] = [double]$projHours[$k] + [double]$t.hours
+    }
+    $zero = @($projHours.Keys | Where-Object { $projHours[$_] -le 0 } | Sort-Object)
+    foreach ($gid in @($Tasks.Keys)) {
+        $t = $Tasks[$gid]
+        if (-not $t.external -and $zero -contains (& $KeyOf $t)) { $Tasks.Remove($gid) }
+    }
+    return $zero
+}
+
+# Counted people outside Art Team whose hours are ALL on other people's tasks (or unassigned ones) - how a
+# non-artist (PO, manager) gets into the report under the logger rule. Motion Design artists are outside
+# Art Team too, but log on their own tasks, so they are not flagged. Only in-portfolio tracked tasks count,
+# the same set as the report's headline. Returns @{ Name; Hours } sorted by name; the run prints a WARNING.
+function Find-ArtOutsideLoggers($Tasks, [string[]]$ArtTeam, [string[]]$Excluded) {
+    $total = @{}; $own = @{}
+    foreach ($t in $Tasks) {
+        if ($t.external -or $t.is_status_based) { continue }
+        $ph = Get-ArtPersonHours $t $Excluded
+        foreach ($n in $ph.Keys) {
+            $total[$n] = [double]$total[$n] + $ph[$n]
+            if ([string]$t.assignee -eq $n) { $own[$n] = [double]$own[$n] + $ph[$n] }
+        }
+    }
+    @($total.Keys | Where-Object { $ArtTeam -notcontains $_ -and -not $own[$_] } | Sort-Object |
+      ForEach-Object { [pscustomobject]@{ Name = $_; Hours = [math]::Round($total[$_], 1) } })
 }
