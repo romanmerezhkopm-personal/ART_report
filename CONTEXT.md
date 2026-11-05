@@ -142,6 +142,18 @@ Denys Drahanov (не художник, Роман 04.11.2026) (`$ART_BASE_EXCLUD
 всем `time_data_*.json` 04.11.2026: срабатывание одно — Drahanov в октябре; апрель–сентябрь пусто (там нет
 `by_logger`, часы на исполнителя). Решение «художник или нет» — за Романом, скрипт никого сам не исключает.
 
+**Ловушка PowerShell 5.1 (05.11.2026):** функция, вернувшая массив из одного элемента, отдаёт голый
+объект, у PSCustomObject `.Count` = `$null`. Так `if ($outsiders.Count)` молчал при ровно одном кандидате
+(Dmytro Miroshnichenko, 24 ч на задаче Polina Dimitrova). Результат `Find-ArtOutsideLoggers` в скрипте
+обязательно в `@(...)` — это проверяет `test_art_exclusions.ps1` (статическая проверка строки вызова).
+
+**Команда Motion Design = художники** (с 05.11.2026, `$MOTION_TEAM_GID` = `1213529841611676`, читается
+живьём в Step 2.5, 0 участников → throw). Роман о Dmytro Miroshnichenko: «состоит в Asana-команде Motion
+Design» — 24 ч только на задаче Polina Dimitrova давали ложный WARNING, его отпуск 88 ч не искался.
+Участники команды ищутся вне портфеля, если логировали в портфеле на любой задаче, и не входят в WARNING
+(`$knownArtistNames` = Art Team + Motion Design). Команда целиком не ищется: в ней не-художники
+(Zoriana Omelchuk).
+
 **Кого искать вне портфеля** (Step 2.5, с 04.11.2026) — `Get-ArtExternalSearchPeople` (`art_exclusions.ps1`):
 Art Team + все, кто за период логировал время в портфеле на СВОИХ задачах (gid автора берётся из
 `created_by.gid` записей Step 2). Было — только Art Team, и у 13 художников Motion Design (не в Art Team)

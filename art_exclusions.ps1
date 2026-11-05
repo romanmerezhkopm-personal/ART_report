@@ -16,6 +16,10 @@
 $ART_BASE_EXCLUDED = @('Roman Merezhko', 'Maryna Riabokon', 'Denys Drahanov')
 $GAMEDEV_TEAM_GID  = "1213487151738856"
 $ART_TEAM_GID      = "1213453988877387"
+# Asana team "Motion Design": its members are artists like Art Team (Roman, 05.11.2026, about Dmytro
+# Miroshnichenko). The team also holds non-artists (e.g. Zoriana Omelchuk), so membership alone never
+# pulls anyone into the report - only together with own time logged in the portfolio (see below).
+$MOTION_TEAM_GID   = "1213529841611676"
 
 function Resolve-ArtExcludedAssignees([string[]]$Base, [string[]]$Developers, [string[]]$ArtTeam) {
     # 0 developers = the team read went wrong (wrong gid / auth / API), not "no developers today".
@@ -53,21 +57,26 @@ function Get-ArtPersonHours($Task, [string[]]$Excluded) {
 }
 
 # Whose tasks OUTSIDE the portfolio are searched (Step 2.5): Art Team + everyone who logged time in the
-# portfolio this period on their OWN tasks (Roman, 04.11.2026). Motion Design artists are not in Art Team,
-# so their vacations / days off ("CAS.AI - Otpuska, likarniani") were never found - October 2026: 216 h
-# (Ilnaz Khadiev 80, Vitalii Trenbach 80, Stas Batov 40, Dmytro Zasulskyi 16). Not searched: excluded
-# people; someone whose portfolio hours are all on other people's tasks (Find-ArtOutsideLoggers flags
-# them - Roman decides first); a logger without a known user gid.
+# portfolio this period on their OWN tasks (Roman, 04.11.2026) + Motion Design team members who logged
+# time in the portfolio on ANY task (Roman, 05.11.2026: Dmytro Miroshnichenko, 24 h on Polina Dimitrova's
+# task, is a Motion Design artist). Motion Design artists are not in Art Team, so their vacations / days
+# off ("CAS.AI - Otpuska, likarniani") were never found - October 2026: 216 h (Ilnaz Khadiev 80, Vitalii
+# Trenbach 80, Stas Batov 40, Dmytro Zasulskyi 16). Not searched: excluded people; a Motion Design member
+# with no portfolio time (the team has non-artists); anyone else whose portfolio hours are all on other
+# people's tasks (Find-ArtOutsideLoggers flags them - Roman decides first); a logger without a known gid.
 # $Tasks: gid -> @{ assignee; by_logger = @{ name = minutes } } (in-portfolio tasks with time);
-# $LoggerGids: name -> user gid; $ArtTeam: user gid -> name. Returns user gid -> name.
-function Get-ArtExternalSearchPeople($Tasks, [hashtable]$LoggerGids, [hashtable]$ArtTeam, [string[]]$Excluded) {
+# $LoggerGids: name -> user gid; $ArtTeam: user gid -> name; $ArtistTeamNames: Motion Design member names.
+# Returns user gid -> name.
+function Get-ArtExternalSearchPeople($Tasks, [hashtable]$LoggerGids, [hashtable]$ArtTeam, [string[]]$Excluded, [string[]]$ArtistTeamNames = @()) {
     $res = @{}
     foreach ($g in $ArtTeam.Keys) { if ($Excluded -notcontains $ArtTeam[$g]) { $res[$g] = $ArtTeam[$g] } }
     $own = @{}
     foreach ($t in $Tasks.Values) {
         $bl = $t.by_logger
         if (-not $bl) { continue }
-        foreach ($n in @($bl.Keys)) { if ([int]$bl[$n] -gt 0 -and [string]$t.assignee -eq $n) { $own[$n] = $true } }
+        foreach ($n in @($bl.Keys)) {
+            if ([int]$bl[$n] -gt 0 -and ([string]$t.assignee -eq $n -or $ArtistTeamNames -contains $n)) { $own[$n] = $true }
+        }
     }
     foreach ($n in $own.Keys) {
         if ($Excluded -contains $n -or -not $LoggerGids.ContainsKey($n)) { continue }
@@ -95,10 +104,11 @@ function Remove-UntrackedRows([hashtable]$Tasks, [scriptblock]$KeyOf) {
     [pscustomobject]@{ Rows = $rows; Projects = @($before.Keys | Where-Object { -not $after.ContainsKey($_) } | Sort-Object) }
 }
 
-# Counted people outside Art Team whose hours are ALL on other people's tasks (or unassigned ones) - how a
-# non-artist (PO, manager) gets into the report under the logger rule. Motion Design artists are outside
-# Art Team too, but log on their own tasks, so they are not flagged. Only in-portfolio tracked tasks count,
-# the same set as the report's headline. Returns @{ Name; Hours } sorted by name; the run prints a WARNING.
+# Counted people outside the artist teams whose hours are ALL on other people's tasks (or unassigned ones) -
+# how a non-artist (PO, manager) gets into the report under the logger rule. $ArtTeam = names of known
+# artists: Art Team + Motion Design team (05.11.2026 - a Motion Design artist logging on a colleague's task,
+# Dmytro Miroshnichenko, is not a candidate). Only in-portfolio tracked tasks count, the same set as the
+# report's headline. Returns @{ Name; Hours } sorted by name; the run prints a WARNING.
 function Find-ArtOutsideLoggers($Tasks, [string[]]$ArtTeam, [string[]]$Excluded) {
     $total = @{}; $own = @{}
     foreach ($t in $Tasks) {

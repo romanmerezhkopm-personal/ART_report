@@ -65,6 +65,13 @@ Check "Art Team member logging on someone else's task is not flagged (Katerina)"
 Check "excluded people and external tasks are not flagged (Roman, Alisa ext)" (@($found | Where-Object { 'Roman Merezhko', 'Alisa Nadvorna' -contains $_.Name }).Count -eq 0)
 Check "an outsider's EXTERNAL entries alone do not flag them" (@(Find-ArtOutsideLoggers @(@{ assignee = 'Oksana Tsvyntarna'; external = $true; by_logger = @{ 'Denys Drahanov' = 180 } }) $art $exNoDrahanov).Count -eq 0)
 Check "once excluded, Drahanov is no longer flagged" (@(Find-ArtOutsideLoggers $oct $art $ART_BASE_EXCLUDED).Count -eq 0)
+# The run script must wrap the call in @(): PS 5.1 unrolls a 1-element result to a bare PSCustomObject
+# whose .Count is $null, so ONE outsider was silently not printed (05.11.2026: Dmytro Miroshnichenko,
+# 24 h on Polina Dimitrova's task). Blocks: "$x = Find-ArtOutsideLoggers ..."; passes: "$x = @(Find-...".
+$one = Find-ArtOutsideLoggers @(@{ assignee = 'Polina Dimitrova'; by_logger = @{ 'Dmytro Miroshnichenko' = 1440 } }) $art $exNoDrahanov
+Check "(why) a bare single result has no usable .Count in this PowerShell" (-not $one.Count -or $PSVersionTable.PSVersion.Major -ge 6)
+$calls = @(Select-String -Path "$PSScriptRoot\run_art_report.ps1" -Pattern '=\s*(@\()?\s*Find-ArtOutsideLoggers')
+Check "run_art_report.ps1: every Find-ArtOutsideLoggers result is wrapped in @() ($($calls.Count) call)" ($calls.Count -ge 1 -and -not ($calls | Where-Object { $_.Line -notmatch '=\s*@\(\s*Find-ArtOutsideLoggers' }))
 
 # --- Remove-UntrackedRows: only rows with time logged in the period are shown -------------------------
 # Real October 2026 rows (time_data_2026-10.json): OverSpace = Anton Tuz's Motion task 4 h + 4 ART Ready
@@ -114,6 +121,21 @@ Check "Art Team member is searched even with no portfolio hours (Katerina)" ($sp
 Check "logger with hours only on someone else's task is not searched (Drahanov pattern)" (-not $sp.ContainsKey('g-drahanov'))
 Check "excluded people are not searched, Art Team or not (Roman, developer Ivan Symkanych)" (-not $sp.ContainsKey('g-roman') -and -not $sp.ContainsKey('g-ivan'))
 Check "logger without a known user gid is skipped, no crash (Anton Tuz here, '(unknown)')" (@($sp.Values | Where-Object { 'Anton Tuz', '(unknown)' -contains $_ }).Count -eq 0 -and $sp.Count -eq 3)
+
+# --- Motion Design team = artists (05.11.2026) ----------------------------------------------------------
+# Real October 2026: Dmytro Miroshnichenko (Motion Design team, not Art Team) logged 24 h only on Polina
+# Dimitrova's task (1218925407566200). Zoriana Omelchuk is in the Motion Design team but logs no art time.
+$md   = @('Dmytro Miroshnichenko', 'Zoriana Omelchuk', 'Stas Batov')
+$pt2  = @{ 'w1' = @{ assignee = 'Polina Dimitrova'; by_logger = @{ 'Dmytro Miroshnichenko' = 1440 } }
+           'w2' = @{ assignee = 'Oleksandr Smyslovskyi'; by_logger = @{ 'Denys Drahanov' = 180 } } }
+$lg2  = @{ 'Dmytro Miroshnichenko' = 'g-dmytro'; 'Zoriana Omelchuk' = 'g-zoriana'; 'Denys Drahanov' = 'g-drahanov' }
+$sp2  = Get-ArtExternalSearchPeople $pt2 $lg2 @{} @('Roman Merezhko') $md
+# must SEARCH / must NOT flag
+Check "Motion Design member logging on a colleague's task is searched (Miroshnichenko)" ($sp2['g-dmytro'] -eq 'Dmytro Miroshnichenko')
+Check "Motion Design member is not a WARNING candidate (Miroshnichenko)" (@(Find-ArtOutsideLoggers @($pt2['w1']) @($art + $md) $exNoDrahanov).Count -eq 0)
+# must NOT search / must still flag
+Check "Motion Design member with no portfolio time is not searched (Zoriana Omelchuk)" (-not $sp2.ContainsKey('g-zoriana'))
+Check "outside both teams, only others' tasks -> still not searched and still flagged (Drahanov)" (-not $sp2.ContainsKey('g-drahanov') -and (@(Find-ArtOutsideLoggers @($pt2['w2']) @($art + $md) $exNoDrahanov) | ForEach-Object { $_.Name }) -eq 'Denys Drahanov')
 
 # --- live: the real teams ---------------------------------------------------
 if (-not $OfflineOnly) {

@@ -288,12 +288,19 @@ foreach ($exGid in @($teamMembers.Keys)) {
     if ($EXCLUDED_ASSIGNEES -contains $teamMembers[$exGid]) { $teamMembers.Remove($exGid) }
 }
 Write-Host "  Team members: $($teamMembers.Count)"
-$artTeamNames = @($teamMembers.Values)   # Art Team only - Find-ArtOutsideLoggers needs exactly this list
+$artTeamNames = @($teamMembers.Values)
+# Motion Design team = artists too (art_exclusions.ps1, $MOTION_TEAM_GID); 0 members = a failed read
+$motionNames = @((Invoke-AsanaGet "$apiBase/teams/$MOTION_TEAM_GID/users?opt_fields=name&limit=100").data | ForEach-Object { [string]$_.name } |
+                 Where-Object { $EXCLUDED_ASSIGNEES -notcontains $_ })
+if ($motionNames.Count -eq 0) { throw "Motion Design team returned 0 members - refusing to build the report" }
+Write-Host "  Motion Design team: $($motionNames.Count)"
+$knownArtistNames = @(@($artTeamNames) + $motionNames | Sort-Object -Unique)   # for Find-ArtOutsideLoggers
 
-# Searched outside the portfolio: Art Team + portfolio loggers on their own tasks (art_exclusions.ps1)
+# Searched outside the portfolio: Art Team + portfolio loggers on their own tasks + Motion Design members
+# who logged in the portfolio (art_exclusions.ps1)
 $portfolioTasks = @{}
 foreach ($g in $taskByLogger.Keys) { $portfolioTasks[$g] = @{ assignee = $allTasks[$g].assignee; by_logger = $taskByLogger[$g] } }
-$searchPeople = Get-ArtExternalSearchPeople $portfolioTasks $loggerGids $teamMembers $EXCLUDED_ASSIGNEES
+$searchPeople = Get-ArtExternalSearchPeople $portfolioTasks $loggerGids $teamMembers $EXCLUDED_ASSIGNEES $motionNames
 $extraPeople  = @($searchPeople.Values | Where-Object { $artTeamNames -notcontains $_ } | Sort-Object)
 Write-Host "  + $($extraPeople.Count) portfolio loggers outside Art Team: $($extraPeople -join ', ')"
 
@@ -415,9 +422,11 @@ foreach ($gid in $taskMinutes.Keys) {
 }
 $processed | ConvertTo-Json -Depth 10 | Out-File $jsonFile -Encoding utf8
 Write-Host "Saved: $jsonFile  ($($processed.Count) tasks)"
-$outsiders = Find-ArtOutsideLoggers @($processed.Values) $artTeamNames $EXCLUDED_ASSIGNEES
+# @() is required: PS 5.1 unrolls a 1-element array to a bare object whose .Count is $null - the single
+# outsider was never printed (05.11.2026, Dmytro Miroshnichenko). test_art_exclusions.ps1 checks this line.
+$outsiders = @(Find-ArtOutsideLoggers @($processed.Values) $knownArtistNames $EXCLUDED_ASSIGNEES)
 if ($outsiders.Count) {
-    Write-Host "  WARNING: counted, outside Art Team, hours only on other people's tasks - artist? If not, add to `$ART_BASE_EXCLUDED: $(($outsiders | ForEach-Object { "$($_.Name) $($_.Hours) h" }) -join ', ')"
+    Write-Host "  WARNING: counted, outside Art Team and Motion Design, hours only on other people's tasks - artist? If not, add to `$ART_BASE_EXCLUDED: $(($outsiders | ForEach-Object { "$($_.Name) $($_.Hours) h" }) -join ', ')"
 }
 
 # ============================================================
